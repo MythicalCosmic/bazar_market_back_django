@@ -1,6 +1,8 @@
 import uuid
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from datetime import timezone,  timedelta
+import hashlib
 
 
 
@@ -64,6 +66,67 @@ class User(TimestampMixin, SoftDeleteMixin):
     def __str__(self) -> str:
         return f"{self.first_name} ({self.role})"
 
+
+class Session(models.Model):
+    key = models.CharField(max_length=64, primary_key=True, db_index=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sessions")
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True)
+    device = models.CharField(max_length=200, blank=True)
+    payload = models.JSONField(default=dict, blank=True)
+    is_active = models.BooleanField(default=True)
+    last_activity_at = models.DateTimeField(auto_now=True)
+    expires_at = models.DateTimeField(db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "sessions"
+        ordering = ["-last_activity_at"]
+
+    def __str__(self):
+        return f"{self.user.email} - {self.key[:12]}..."
+
+    @classmethod
+    def generate_key(cls):
+        raw = f"{uuid.uuid4()}{timezone.now().isoformat()}"
+        return hashlib.sha256(raw.encode()).hexdigest()
+
+    @classmethod
+    def create_session(cls, user, ip_address="", user_agent="", device="", lifetime_hours=72):
+        cls.objects.filter(user=user, is_active=False).delete()
+        cls.objects.filter(expires_at__lt=timezone.now()).delete()
+        return cls.objects.create(
+            key=cls.generate_key(),
+            user=user,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            device=device,
+            expires_at=timezone.now() + timedelta(hours=lifetime_hours),
+        )
+
+    @classmethod
+    def get_valid_session(cls, key):
+        try:
+            session = cls.objects.select_related("user").get(
+                key=key, is_active=True, expires_at__gt=timezone.now()
+            )
+            session.save(update_fields=["last_activity_at"])
+            return session
+        except cls.DoesNotExist:
+            return None
+
+    def invalidate(self):
+        self.is_active = False
+        self.save(update_fields=["is_active"])
+
+    @classmethod
+    def invalidate_all(cls, user):
+        cls.objects.filter(user=user, is_active=True).update(is_active=False)
+
+    @property
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+    
 
 class Address(TimestampMixin):
     user = models.ForeignKey(

@@ -40,7 +40,8 @@ INSTALLED_APPS = [
     'base',
     'customer',
     'admins',
-    'bot'
+    'bot',
+    'rest_framework',
 ]
 
 MIDDLEWARE = [
