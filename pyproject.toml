@@ -1,0 +1,12 @@
+[project]
+name = "bazar-market-django"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "django>=6.0.3",
+    "django-redis>=6.0.0",
+    "dotenv>=0.9.9",
+    "psycopg>=3.3.3",
+]
