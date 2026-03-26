@@ -44,8 +44,7 @@ class Container:
         hints.pop("return", None)
         kwargs = {}
         for name, hint in hints.items():
-            if hint in self._bindings:
-                kwargs[name] = self.resolve(hint)
+            kwargs[name] = self.resolve(hint)
         return cls(**kwargs)
 
     def is_registered(self, interface: type) -> bool:
@@ -85,6 +84,7 @@ def configure(c: Container | None = None) -> Container:
         IDailyStatRepository,
         ISearchLogRepository,
         ISettingRepository,
+        ISessionRepository
     )
     from base.repositories import (
         UserRepository,
@@ -109,6 +109,7 @@ def configure(c: Container | None = None) -> Container:
         DailyStatRepository,
         SearchLogRepository,
         SettingRepository,
+        SessionRepository
     )
 
     c.register(IUserRepository, UserRepository)
@@ -116,6 +117,7 @@ def configure(c: Container | None = None) -> Container:
     c.register(ICategoryRepository, CategoryRepository)
     c.register(IProductRepository, ProductRepository)
     c.register(IProductImageRepository, ProductImageRepository)
+    c.register(ISessionRepository, SessionRepository)
     c.register(IBannerRepository, BannerRepository)
     c.register(ICartItemRepository, CartItemRepository)
     c.register(IOrderRepository, OrderRepository)

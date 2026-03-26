@@ -21,6 +21,7 @@ from base.repositories.review import ReviewRepository
 from base.repositories.referral import ReferralRepository
 from base.repositories.analytics import DailyStatRepository, SearchLogRepository
 from base.repositories.setting import SettingRepository
+from base.repositories.session import SessionRepository
 
 __all__ = [
     "BaseRepository",
@@ -47,4 +48,5 @@ __all__ = [
     "DailyStatRepository",
     "SearchLogRepository",
     "SettingRepository",
+    "SessionRepository"
 ]
