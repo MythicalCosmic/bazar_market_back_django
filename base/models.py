@@ -547,6 +547,55 @@ class CouponUsage(models.Model):
 
 
 
+class Discount(TimestampMixin, SoftDeleteMixin):
+    class Type(models.TextChoices):
+        PERCENT = "percent", "Percent"
+        FIXED = "fixed", "Fixed"
+
+    uuid = models.UUIDField(unique=True, default=uuid.uuid4, editable=False)
+    name_uz = models.CharField(max_length=200)
+    name_ru = models.CharField(max_length=200, blank=True, default="")
+    type = models.CharField(max_length=20, choices=Type.choices)
+    value = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        help_text="10 for 10% or 10000 for 10k som",
+    )
+    max_discount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Cap for percent type",
+    )
+    products = models.ManyToManyField(
+        "Product",
+        blank=True,
+        related_name="discounts",
+    )
+    categories = models.ManyToManyField(
+        "Category",
+        blank=True,
+        related_name="discounts",
+    )
+    starts_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "discounts"
+        indexes = [
+            models.Index(
+                fields=["is_active", "starts_at", "expires_at"],
+                name="idx_discounts_active",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return self.name_uz
+
+
 class DeliveryZone(TimestampMixin):
     name = models.CharField(max_length=100, help_text='e.g. "Chilanzar", "Sergeli"')
     polygon = models.JSONField(help_text="GeoJSON polygon coordinates")
