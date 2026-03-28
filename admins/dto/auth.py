@@ -6,8 +6,9 @@ class LoginDTO:
     username: str
     password: str
 
+
 @dataclass(frozen=True)
 class SessionDTO:
     ip_address: str
     user_agent: str
-    device: int
+    device: str

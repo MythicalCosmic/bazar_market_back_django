@@ -1,40 +1,37 @@
 from base.interfaces.user import IUserRepository
 from base.interfaces.session import ISessionRepository
+from base.exceptions import NotFoundError, AuthenticationError
 from admins.dto.auth import LoginDTO, SessionDTO
-from django.http import Http404
-from rest_framework.exceptions import AuthenticationFailed
+
 
 class AuthService:
 
-    #define the repository here
     def __init__(self, user_repo: IUserRepository, session_repo: ISessionRepository):
-        self.user_repo = user_repo
-        self.session_repo = session_repo
+        self._users = user_repo
+        self._sessions = session_repo
 
-
-
-    #login method
-    def login(self, credetials: LoginDTO, session_info: SessionDTO):
-        #get user credetials
-        user = self.user_repo.get_by_username(credetials.username)
-
-        #check if the user exists or not
+    def login(self, credentials: LoginDTO, session_info: SessionDTO) -> dict:
+        user = self._users.get_by_username(credentials.username)
         if not user:
-            raise Http404("User not found")
-        
-        #check if the credentials are correct or not
-        if not user.check_password(credetials.password):
-            raise AuthenticationFailed("Invalid Credentials")
-        
-        #pass the user to update last seeon
-        self.user_repo.update_last_seen(user)
-
-        #generate the seesion token here
-        session = self.session_repo.create(
+            raise NotFoundError("User not found")
+        if not user.check_password(credentials.password):
+            raise AuthenticationError("Invalid credentials")
+        self._users.update_last_seen(user)
+        session = self._sessions.create_session(
             user=user,
             ip=session_info.ip_address,
             ua=session_info.user_agent,
-            device=session_info.device
-    )
-
-        return session
+            device=session_info.device,
+        )
+        return {
+            "session_key": session.key,
+            "user": {
+                "id": user.id,
+                "uuid": str(user.uuid),
+                "username": user.username,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "role": user.role,
+            },
+            "expires_at": session.expires_at.isoformat(),
+        }

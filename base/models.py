@@ -50,6 +50,7 @@ class User(TimestampMixin, SoftDeleteMixin):
     phone = models.CharField(max_length=20, unique=True, null=True, blank=True)
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.CLIENT)
     language = models.CharField(max_length=5, choices=Language.choices, default=Language.UZ)
+    password = models.CharField(max_length=128, blank=True, default="")
     is_active = models.BooleanField(default=True)
     last_seen_at = models.DateTimeField(null=True, blank=True)
 
@@ -65,6 +66,15 @@ class User(TimestampMixin, SoftDeleteMixin):
 
     def __str__(self) -> str:
         return f"{self.first_name} ({self.role})"
+
+    def set_password(self, raw_password):
+        from django.contrib.auth.hashers import make_password
+        self.password = make_password(raw_password)
+        self.save(update_fields=["password", "updated_at"])
+
+    def check_password(self, raw_password):
+        from django.contrib.auth.hashers import check_password
+        return check_password(raw_password, self.password)
 
 
 class Session(models.Model):
@@ -84,7 +94,7 @@ class Session(models.Model):
         ordering = ["-last_activity_at"]
 
     def __str__(self):
-        return f"{self.user.email} - {self.key[:12]}..."
+        return f"{self.user} - {self.key[:12]}..."
 
     @classmethod
     def generate_key(cls):

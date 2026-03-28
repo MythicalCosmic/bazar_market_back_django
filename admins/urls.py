@@ -7,5 +7,5 @@ app_name = "admins"
 
 
 urlpatterns = [
-    path('auth-login', login_view, name='login')
+    path('auth-login', login_view, name='login'),
 ]
