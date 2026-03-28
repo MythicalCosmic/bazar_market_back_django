@@ -43,3 +43,12 @@ class AuthService:
             raise AuthenticationError("Invalid or expired session")
         self._sessions.invalidate(session)
         return {"message": "Logged out"}
+    
+    def logout_all(self, session_token: str) -> dict:
+        session = self._sessions.get_by_key(session_token)
+
+        if not session:
+            raise AuthenticationError("Invalid or expired session")
+        self._sessions.invalidate_all_for_user(session.user)
+
+        return {"message": "Logged out"}
