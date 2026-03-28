@@ -15,9 +15,9 @@ urlpatterns = [
 
 
     path('users', list_users_view, name="users"),
-    path('user/<int:pk>', get_user_view, name="user"),
+    path('user/<int:user_id>', get_user_view, name="user"),
     path('user/create', create_user_view, name="create"),
-    path('user/<int:pk>/update', update_user_view, name="update"),
-    path('user/<int:pk>/delete', delete_user_view, name="delete"),
-    path('user/<int:pk>/restore', restore_user_view, name="restore"),
+    path('user/<int:user_id>/update', update_user_view, name="update"),
+    path('user/<int:user_id>/delete', delete_user_view, name="delete"),
+    path('user/<int:user_id>/restore', restore_user_view, name="restore"),
 ]
