@@ -84,7 +84,10 @@ def configure(c: Container | None = None) -> Container:
         IDailyStatRepository,
         ISearchLogRepository,
         ISettingRepository,
-        ISessionRepository
+        ISessionRepository,
+        IPermissionRepository,
+        IRolePermissionRepository,
+        IUserPermissionRepository,
     )
     from base.repositories import (
         UserRepository,
@@ -109,7 +112,10 @@ def configure(c: Container | None = None) -> Container:
         DailyStatRepository,
         SearchLogRepository,
         SettingRepository,
-        SessionRepository
+        SessionRepository,
+        PermissionRepository,
+        RolePermissionRepository,
+        UserPermissionRepository,
     )
 
     c.register(IUserRepository, UserRepository)
@@ -135,5 +141,8 @@ def configure(c: Container | None = None) -> Container:
     c.register(IDailyStatRepository, DailyStatRepository)
     c.register(ISearchLogRepository, SearchLogRepository)
     c.register(ISettingRepository, SettingRepository)
+    c.register(IPermissionRepository, PermissionRepository)
+    c.register(IRolePermissionRepository, RolePermissionRepository)
+    c.register(IUserPermissionRepository, UserPermissionRepository)
 
     return c

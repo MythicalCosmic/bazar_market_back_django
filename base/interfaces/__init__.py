@@ -22,6 +22,7 @@ from base.interfaces.referral import IReferralRepository
 from base.interfaces.analytics import IDailyStatRepository, ISearchLogRepository
 from base.interfaces.setting import ISettingRepository
 from base.interfaces.session import ISessionRepository
+from base.interfaces.permission import IPermissionRepository, IRolePermissionRepository, IUserPermissionRepository
 __all__ = [
     "IBaseRepository",
     "ISoftDeleteRepository",
@@ -47,5 +48,8 @@ __all__ = [
     "IDailyStatRepository",
     "ISearchLogRepository",
     "ISettingRepository",
-    "ISessionRepository"
+    "ISessionRepository",
+    "IPermissionRepository",
+    "IRolePermissionRepository",
+    "IUserPermissionRepository",
 ]

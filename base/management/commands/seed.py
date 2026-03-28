@@ -15,6 +15,8 @@ from base.models import (
     DeliveryZone,
     Discount,
     Setting,
+    Permission,
+    RolePermission,
 )
 
 
@@ -32,11 +34,13 @@ class Command(BaseCommand):
         if options["flush"]:
             self.stdout.write("Flushing existing data...")
             for model in [
+                RolePermission, Permission,
                 Product, ProductImage, Category, Address, User,
                 Banner, Coupon, DeliveryZone, Discount, Setting,
             ]:
                 model.objects.all().delete()
 
+        self.seed_permissions()
         self.seed_users()
         self.seed_categories()
         self.seed_products()
@@ -48,6 +52,57 @@ class Command(BaseCommand):
         self.seed_settings()
 
         self.stdout.write(self.style.SUCCESS("Seeding complete!"))
+
+    def seed_permissions(self):
+        from base.permissions import DEFAULT_ROLE_PERMISSIONS
+
+        all_perms = {
+            "manage_users": ("Manage users", "users"),
+            "manage_roles": ("Manage roles", "users"),
+            "manage_categories": ("Manage categories", "catalog"),
+            "manage_products": ("Manage products", "catalog"),
+            "manage_banners": ("Manage banners", "catalog"),
+            "manage_coupons": ("Manage coupons", "catalog"),
+            "manage_discounts": ("Manage discounts", "catalog"),
+            "manage_delivery_zones": ("Manage delivery zones", "delivery"),
+            "manage_settings": ("Manage settings", "system"),
+            "manage_orders": ("Manage orders", "orders"),
+            "manage_payments": ("Manage payments", "orders"),
+            "manage_notifications": ("Manage notifications", "system"),
+            "manage_analytics": ("Manage analytics", "system"),
+            "view_users": ("View users", "users"),
+            "view_categories": ("View categories", "catalog"),
+            "view_products": ("View products", "catalog"),
+            "view_orders": ("View orders", "orders"),
+            "view_payments": ("View payments", "orders"),
+            "view_analytics": ("View analytics", "system"),
+            "view_delivery_zones": ("View delivery zones", "delivery"),
+            "assign_orders": ("Assign orders", "orders"),
+            "update_order_status": ("Update order status", "orders"),
+            "view_assigned_orders": ("View assigned orders", "orders"),
+        }
+
+        perm_created = 0
+        perm_objects = {}
+        for codename, (name, group) in all_perms.items():
+            obj, is_new = Permission.objects.get_or_create(
+                codename=codename,
+                defaults={"name": name, "group": group},
+            )
+            perm_objects[codename] = obj
+            if is_new:
+                perm_created += 1
+
+        rp_created = 0
+        for role, codenames in DEFAULT_ROLE_PERMISSIONS.items():
+            for codename in codenames:
+                _, is_new = RolePermission.objects.get_or_create(
+                    role=role, permission=perm_objects[codename],
+                )
+                if is_new:
+                    rp_created += 1
+
+        self.stdout.write(f"  Permissions: {perm_created} created, {rp_created} role assignments")
 
     def seed_users(self):
         users = [

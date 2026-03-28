@@ -848,6 +848,55 @@ class SearchLog(models.Model):
 
 
 
+class Permission(models.Model):
+    codename = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=200)
+    group = models.CharField(max_length=50, blank=True, default="")
+
+    class Meta:
+        db_table = "permissions"
+        ordering = ["group", "codename"]
+
+    def __str__(self) -> str:
+        return self.codename
+
+
+class RolePermission(models.Model):
+    role = models.CharField(max_length=20, choices=User.Role.choices, db_index=True)
+    permission = models.ForeignKey(Permission, on_delete=models.CASCADE, related_name="role_permissions")
+
+    class Meta:
+        db_table = "role_permissions"
+        constraints = [
+            models.UniqueConstraint(fields=["role", "permission"], name="uq_role_permission"),
+        ]
+        indexes = [
+            models.Index(fields=["role"], name="idx_role_perm_role"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.role} -> {self.permission.codename}"
+
+
+class UserPermission(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_permissions")
+    permission = models.ForeignKey(Permission, on_delete=models.CASCADE, related_name="user_permissions")
+    is_granted = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "user_permissions"
+        constraints = [
+            models.UniqueConstraint(fields=["user", "permission"], name="uq_user_permission"),
+        ]
+        indexes = [
+            models.Index(fields=["user_id"], name="idx_user_perm_user"),
+        ]
+
+    def __str__(self) -> str:
+        prefix = "+" if self.is_granted else "-"
+        return f"{prefix}{self.permission.codename} for {self.user}"
+
+
 class Setting(models.Model):
     class ValueType(models.TextChoices):
         STRING = "string", "String"

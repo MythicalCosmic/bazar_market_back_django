@@ -2,7 +2,6 @@ import json
 
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_GET
-
 from base.container import container
 from base.responses import success, error
 from admins.dto.auth import LoginDTO, SessionDTO

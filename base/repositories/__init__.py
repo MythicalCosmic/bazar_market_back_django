@@ -22,6 +22,7 @@ from base.repositories.referral import ReferralRepository
 from base.repositories.analytics import DailyStatRepository, SearchLogRepository
 from base.repositories.setting import SettingRepository
 from base.repositories.session import SessionRepository
+from base.repositories.permission import PermissionRepository, RolePermissionRepository, UserPermissionRepository
 
 __all__ = [
     "BaseRepository",
@@ -48,5 +49,8 @@ __all__ = [
     "DailyStatRepository",
     "SearchLogRepository",
     "SettingRepository",
-    "SessionRepository"
+    "SessionRepository",
+    "PermissionRepository",
+    "RolePermissionRepository",
+    "UserPermissionRepository",
 ]
