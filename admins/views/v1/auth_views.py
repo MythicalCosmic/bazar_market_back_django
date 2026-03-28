@@ -1,7 +1,7 @@
 import json
 
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_GET
 
 from base.container import container
 from base.responses import success, error
@@ -57,3 +57,16 @@ def logout_all_view(request):
     auth_service = container.resolve(AuthService)
     result = auth_service.logout_all(session_token)
     return success(data=result, message="Loggout successful for all devices")
+
+
+@csrf_exempt
+@require_GET
+def me_view(request):
+    auth_header = request.META.get("HTTP_AUTHORIZATION", "")
+    if not auth_header.startswith("Bearer "):
+        return error("Authorization header required", status=401)
+    
+    session_token = auth_header[7:]
+    auth_service = container.resolve(AuthService)
+    result = auth_service.me(session_token)
+    return success(data=result, message="Profile retrival successful")
