@@ -36,3 +36,10 @@ class AuthService:
             "expires_at": session.expires_at.isoformat(),
         }
     
+
+    def logout(self, session_token: str) -> dict:
+        session = self._sessions.get_by_key(session_token)
+        if not session:
+            raise AuthenticationError("Invalid or expired session")
+        self._sessions.invalidate(session)
+        return {"message": "Logged out"}

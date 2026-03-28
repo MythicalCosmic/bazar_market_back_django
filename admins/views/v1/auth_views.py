@@ -32,3 +32,16 @@ def login_view(request):
         ),
     )
     return success(data=result, message="Login successful")
+
+
+@csrf_exempt
+@require_POST
+def logout_view(request):
+    auth_header = request.META.get("HTTP_AUTHORIZATION", "")
+    if not auth_header.startswith("Bearer "):
+        return error("Authorization header required", status=401)
+
+    session_token = auth_header[7:]
+    auth_service = container.resolve(AuthService)
+    result = auth_service.logout(session_token)
+    return success(data=result, message="Logout successful")
