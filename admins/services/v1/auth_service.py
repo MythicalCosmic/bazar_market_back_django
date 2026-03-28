@@ -35,3 +35,4 @@ class AuthService:
             },
             "expires_at": session.expires_at.isoformat(),
         }
+    
