@@ -1,7 +1,7 @@
 from typing import TypeVar, Generic, Optional, Sequence, Any
 
 from django.db import models
-from django.db.models import QuerySet
+from django.db.models import Q, QuerySet
 from django.utils import timezone
 
 T = TypeVar("T", bound=models.Model)
@@ -12,6 +12,45 @@ class BaseRepository(Generic[T]):
 
     def get_queryset(self) -> QuerySet[T]:
         return self.model.objects.all()
+
+    # ── search / filter / paginate ──────────────────────────
+
+    def search(self, queryset: QuerySet[T], query: str, fields: list[str]) -> QuerySet[T]:
+        if not query or not fields:
+            return queryset
+        q = Q()
+        for field in fields:
+            q |= Q(**{f"{field}__icontains": query})
+        return queryset.filter(q)
+
+    def apply_filters(self, queryset: QuerySet[T], filters: dict) -> QuerySet[T]:
+        clean = {k: v for k, v in filters.items() if v is not None}
+        if clean:
+            queryset = queryset.filter(**clean)
+        return queryset
+
+    def apply_ordering(self, queryset: QuerySet[T], order_by: str, allowed: set[str]) -> QuerySet[T]:
+        if not order_by:
+            return queryset
+        field = order_by.lstrip("-")
+        if field not in allowed:
+            return queryset
+        return queryset.order_by(order_by)
+
+    def paginate(self, queryset: QuerySet[T], page: int = 1, per_page: int = 20) -> dict:
+        page = max(1, page)
+        per_page = max(1, min(per_page, 100))
+        total = queryset.count()
+        total_pages = max(1, (total + per_page - 1) // per_page)
+        offset = (page - 1) * per_page
+        items = list(queryset[offset:offset + per_page])
+        return {
+            "items": items,
+            "page": page,
+            "per_page": per_page,
+            "total": total,
+            "total_pages": total_pages,
+        }
 
     def get_by_id(self, pk: int) -> Optional[T]:
         return self.get_queryset().filter(pk=pk).first()

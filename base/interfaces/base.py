@@ -64,6 +64,18 @@ class IBaseRepository(ABC, Generic[T]):
         self, defaults: Optional[dict] = None, **kwargs: Any
     ) -> tuple[T, bool]: ...
 
+    @abstractmethod
+    def search(self, queryset: QuerySet[T], query: str, fields: list[str]) -> QuerySet[T]: ...
+
+    @abstractmethod
+    def apply_filters(self, queryset: QuerySet[T], filters: dict) -> QuerySet[T]: ...
+
+    @abstractmethod
+    def apply_ordering(self, queryset: QuerySet[T], order_by: str, allowed: set[str]) -> QuerySet[T]: ...
+
+    @abstractmethod
+    def paginate(self, queryset: QuerySet[T], page: int = 1, per_page: int = 20) -> dict: ...
+
 
 class ISoftDeleteRepository(IBaseRepository[T]):
 
