@@ -17,7 +17,9 @@ class ResponseTimeMiddleware(MiddlewareMixin):
             try:
                 data = json.loads(response.content)
                 data["responseMS"] = elapsed_ms
-                response.content = json.dumps(data).encode("utf-8")
+                new_content = json.dumps(data).encode("utf-8")
+                response.content = new_content
+                response["Content-Length"] = len(new_content)
             except (json.JSONDecodeError, ValueError):
                 pass
         return response
