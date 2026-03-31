@@ -4,10 +4,12 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-dev-key-change-in-production")
-DEBUG = os.getenv("DEBUG", "0") == "1"
+DEBUG = True
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
 INSTALLED_APPS = [
+    "daphne",
+    "telescope",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -21,6 +23,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "telescope.middleware.TelescopeMiddleware",
     "base.middlewares.responseTimeMiddleware.ResponseTimeMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -87,3 +90,26 @@ USE_TZ = True
 STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+TELESCOPE = {
+    "ENABLED": True,
+}
+
+ASGI_APPLICATION = "bazar_market_django.asgi.application"
+
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    }
+}
+
+
+TELESCOPE = {                                                                                                                                                                   
+      "ENABLED": True,                                                                                                                                                            
+      "WATCHERS": {                                                                                                                                                               
+          "RedisWatcher": {"enabled": True},                                                                                                                                      
+          "CacheWatcher": {"enabled": True},                                                                                                                                      
+      },                                                                                                                                                                          
+  }  

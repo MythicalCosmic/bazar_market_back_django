@@ -6,6 +6,7 @@ from base.container import container
 from base.responses import success, error
 from admins.dto.auth import LoginDTO, SessionDTO
 from admins.services.v1.auth_service import AuthService
+import telescope
 
 
 @csrf_exempt
@@ -66,6 +67,7 @@ def me_view(request):
         return error("Authorization header required", status=401)
     
     session_token = auth_header[7:]
+    telescope.dump(auth_header, label='warning')
     auth_service = container.resolve(AuthService)
     result = auth_service.me(session_token)
     return success(data=result, message="Profile retrival successful")
