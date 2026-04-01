@@ -1,6 +1,6 @@
 from base.interfaces.user import IUserRepository
 from base.interfaces.session import ISessionRepository
-from base.exceptions import NotFoundError, AuthenticationError, ForbiddenError, ValidationError
+from base.exceptions import NotFoundError, ValidationError
 from admins.dto.user import CreateUserDTO, UpdateUserDTO
 from base.models import User
 
