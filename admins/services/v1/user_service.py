@@ -4,22 +4,26 @@ from base.exceptions import NotFoundError, AuthenticationError, ForbiddenError, 
 from admins.dto.user import CreateUserDTO, UpdateUserDTO
 from base.models import User
 
+STAFF_ROLES = {User.Role.ADMIN, User.Role.MANAGER, User.Role.COURIER}
+
 
 class UserService:
     def __init__(self, user_repository: IUserRepository, session_repository: ISessionRepository):
         self.user_repository = user_repository
         self.session_repository = session_repository
 
+    def _staff_qs(self):
+        return self.user_repository.get_all().filter(role__in=STAFF_ROLES)
 
     def get_all(self, query=None, role=None, is_active=None, order_by="-created_at", page=1, per_page=20):
-        qs = self.user_repository.get_all()
+        qs = self._staff_qs()
         qs = self.user_repository.search(qs, query, ["first_name", "last_name", "username", "phone"])
         qs = self.user_repository.apply_filters(qs, {"role": role, "is_active": is_active})
         qs = self.user_repository.apply_ordering(qs, order_by, {"created_at", "first_name", "last_name", "role"})
         return self.user_repository.paginate(qs, page, per_page)
 
     def get_by_id(self, user_id: int) -> User | None:
-        return self.user_repository.get_by_id(user_id)
+        return self._staff_qs().filter(pk=user_id).first()
 
     def get_by_username(self, username: str) -> User | None:
         return self.user_repository.get_by_username(username)
@@ -31,6 +35,8 @@ class UserService:
         return self.user_repository.get_by_phone(phone)
 
     def create_user(self, dto: CreateUserDTO) -> dict:
+        if dto.role not in STAFF_ROLES:
+            raise ValidationError(f"Role must be one of: {', '.join(STAFF_ROLES)}")
         if self.user_repository.exists(username=dto.username):
             raise ValidationError("Username already exists")
         if dto.phone and self.user_repository.exists(phone=dto.phone):
@@ -43,7 +49,7 @@ class UserService:
             last_name=dto.last_name,
             role=dto.role,
             language=dto.language or "uz",
-            telegram_id=dto.telegram_id
+            telegram_id=dto.telegram_id,
         )
 
         user.set_password(dto.password)
@@ -73,7 +79,7 @@ class UserService:
 
 
     def delete_user(self, user_id: int) -> dict:
-        user = self.user_repository.get_by_id(user_id)
+        user = self._staff_qs().filter(pk=user_id).first()
         if not user:
             raise NotFoundError("User not found")
 
@@ -83,7 +89,7 @@ class UserService:
         return {"message": "User deleted successfully"}
 
     def restore_user(self, user_id: int) -> dict:
-        user = self.user_repository.get_only_deleted().filter(pk=user_id).first()
+        user = self.user_repository.get_only_deleted().filter(pk=user_id, role__in=STAFF_ROLES).first()
         if not user:
             raise NotFoundError("User not found or not deleted")
 
