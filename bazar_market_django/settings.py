@@ -26,7 +26,9 @@ MIDDLEWARE = [
     "base.middlewares.forceJsonResponseMiddleware.JSONResponseMiddleware",
 ]
 
-if DEBUG:
+TELESCOPE_ENABLED = os.getenv("TELESCOPE_ENABLED", "false").lower() == "true"
+
+if TELESCOPE_ENABLED:
     MIDDLEWARE.insert(0, "telescope.middleware.TelescopeMiddleware")
 
 ROOT_URLCONF = "bazar_market_django.urls"
@@ -100,7 +102,7 @@ CHANNEL_LAYERS = {
 
 
 TELESCOPE = {
-    "ENABLED": False,
+    "ENABLED": TELESCOPE_ENABLED,
     "WATCHERS": {
         "RequestWatcher": {"enabled": True},
         "QueryWatcher": {"enabled": True, "slow_threshold": 50},
