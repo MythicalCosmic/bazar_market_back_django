@@ -10,11 +10,8 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 INSTALLED_APPS = [
     "daphne",
     "telescope",
-    "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
-    "django.contrib.sessions",
-    "django.contrib.messages",
     "django.contrib.staticfiles",
     "base",
     "customer",
@@ -23,17 +20,14 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    "telescope.middleware.TelescopeMiddleware",
     "base.middlewares.responseTimeMiddleware.ResponseTimeMiddleware",
     "django.middleware.security.SecurityMiddleware",
-    "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "django.contrib.messages.middleware.MessageMiddleware",
-    "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "base.middlewares.forceJsonResponseMiddleware.JSONResponseMiddleware",
 ]
+
+if DEBUG:
+    MIDDLEWARE.insert(0, "telescope.middleware.TelescopeMiddleware")
 
 ROOT_URLCONF = "bazar_market_django.urls"
 
@@ -45,8 +39,6 @@ TEMPLATES = [
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.request",
-                "django.contrib.auth.context_processors.auth",
-                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
@@ -62,6 +54,8 @@ DATABASES = {
         "PASSWORD": os.getenv("DB_PASSWORD", "bazar_secret"),
         "HOST": os.getenv("DB_HOST", "localhost"),
         "PORT": os.getenv("DB_PORT", "5432"),
+        "CONN_MAX_AGE": 600,
+        "CONN_HEALTH_CHECKS": True,
     }
 }
 
@@ -71,6 +65,9 @@ CACHES = {
         "LOCATION": os.getenv("REDIS_URL", "redis://localhost:6379/0"),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "CONNECTION_POOL_KWARGS": {"max_connections": 50},
+            "SOCKET_CONNECT_TIMEOUT": 1,
+            "SOCKET_TIMEOUT": 1,
         },
     }
 }
@@ -92,10 +89,6 @@ STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
-TELESCOPE = {
-    "ENABLED": True,
-}
-
 ASGI_APPLICATION = "bazar_market_django.asgi.application"
 
 
@@ -106,10 +99,25 @@ CHANNEL_LAYERS = {
 }
 
 
-TELESCOPE = {                                                                                                                                                                   
-      "ENABLED": True,                                                                                                                                                            
-      "WATCHERS": {                                                                                                                                                               
-          "RedisWatcher": {"enabled": True},                                                                                                                                      
-          "CacheWatcher": {"enabled": True},                                                                                                                                      
-      },                                                                                                                                                                          
-  }  
+TELESCOPE = {
+    "ENABLED": False,
+    "WATCHERS": {
+        "RequestWatcher": {"enabled": True},
+        "QueryWatcher": {"enabled": True, "slow_threshold": 50},
+        "ExceptionWatcher": {"enabled": True},
+        "ModelWatcher": {"enabled": False},
+        "LogWatcher": {"enabled": False},
+        "CacheWatcher": {"enabled": False},
+        "RedisWatcher": {"enabled": False},
+        "MailWatcher": {"enabled": False},
+        "ViewWatcher": {"enabled": False},
+        "EventWatcher": {"enabled": False},
+        "CommandWatcher": {"enabled": False},
+        "GateWatcher": {"enabled": False},
+        "NotificationWatcher": {"enabled": False},
+        "DumpWatcher": {"enabled": False},
+        "ClientRequestWatcher": {"enabled": False},
+        "ScheduleWatcher": {"enabled": False},
+        "BatchWatcher": {"enabled": False},
+    },
+}

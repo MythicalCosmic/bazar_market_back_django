@@ -69,7 +69,7 @@ dependencies = [
 requires-dist = [
     { name = "django", specifier = ">=6.0.3" },
     { name = "django-redis", specifier = ">=6.0.0" },
-    { name = "django-scope", specifier = ">=0.1.0" },
+    { name = "django-scope", specifier = ">=1.0.1" },
     { name = "djangorestframework", specifier = ">=3.17.1" },
     { name = "dotenv", specifier = ">=0.9.9" },
     { name = "psycopg", specifier = ">=3.3.3" },
@@ -243,16 +243,16 @@ wheels = [
 
 [[package]]
 name = "django-scope"
-version = "1.0.0"
+version = "1.0.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "channels" },
     { name = "daphne" },
     { name = "django" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/23/1a/99b3b33d355933c903736b40e90170ea0d54372177e2457a44f67b2dd903/django_scope-1.0.0.tar.gz", hash = "sha256:e8b67f977333ed6dbe1dfa9b20efb2a5d47005e3b61aa22ce3291b727d12a0ca", size = 92469, upload-time = "2026-03-31T05:42:06.89Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c4/a9/5344ade62af36a809ad42253f0e148bcb9d57323134333bbfad5b1521957/django_scope-1.0.1.tar.gz", hash = "sha256:abca3096b45e7711aa11d557b01702dd76cbfddb38168b2b7071bc8e08cbc775", size = 92551, upload-time = "2026-03-31T06:07:15.936Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/17/84/a08315509fb15ac79df5fb3c255456c63fada81bc5aa50678945729739c5/django_scope-1.0.0-py3-none-any.whl", hash = "sha256:35e52ffbd2afe81a58e3b54915435db51cd063c8b2cefd76628aec8aa3e6a028", size = 120341, upload-time = "2026-03-31T05:42:05.184Z" },
+    { url = "https://files.pythonhosted.org/packages/cf/46/61940211a6561dcf5b8bf2edf711e322f73c8e7b95fa696d567272a91ced/django_scope-1.0.1-py3-none-any.whl", hash = "sha256:95a9f0e9191dc530c29da280f2574291171eda0a0450658c0ccabbf822bc2da6", size = 120455, upload-time = "2026-03-31T06:07:13.837Z" },
 ]
 
 [[package]]

@@ -46,21 +46,22 @@ class SessionRepository(BaseRepository[Session]):
             expires_at=timezone.now() + timedelta(hours=hours),
         )
         ttl = int((session.expires_at - timezone.now()).total_seconds())
-        _cache_safe(cache.set, self._cache_key(session.key), True, ttl)
+        _cache_safe(cache.set, self._cache_key(session.key), session.pk, ttl)
         return session
 
     def get_by_key(self, key: str) -> Optional[Session]:
-        cached = _cache_safe(cache.get, self._cache_key(key))
+        cache_key = self._cache_key(key)
+        cached = _cache_safe(cache.get, cache_key)
 
-        if cached is True:
+        if cached is not None:
             try:
                 session = Session.objects.select_related("user").get(
-                    pk=key, is_active=True
+                    pk=cached, is_active=True
                 )
                 self._touch_activity(session)
                 return session
             except Session.DoesNotExist:
-                _cache_safe(cache.delete, self._cache_key(key))
+                _cache_safe(cache.delete, cache_key)
                 return None
 
         try:
@@ -68,18 +69,18 @@ class SessionRepository(BaseRepository[Session]):
                 key=key, is_active=True, expires_at__gt=timezone.now()
             )
             ttl = int((session.expires_at - timezone.now()).total_seconds())
-            _cache_safe(cache.set, self._cache_key(session.key), True, ttl)
+            _cache_safe(cache.set, cache_key, session.pk, ttl)
             self._touch_activity(session)
             return session
         except Session.DoesNotExist:
             return None
 
     def _touch_activity(self, session: Session) -> None:
-        if session.last_activity_at:
-            delta = (timezone.now() - session.last_activity_at).total_seconds()
-            if delta < ACTIVITY_THRESHOLD:
-                return
-        session.save(update_fields=["last_activity_at"])
+        touch_key = f"{SESSION_PREFIX}touch:{session.pk}"
+        if _cache_safe(cache.get, touch_key) is not None:
+            return
+        _cache_safe(cache.set, touch_key, 1, ACTIVITY_THRESHOLD)
+        Session.objects.filter(pk=session.pk).update(last_activity_at=timezone.now())
 
     def invalidate(self, session: Session) -> None:
         _cache_safe(cache.delete, self._cache_key(session.key))
