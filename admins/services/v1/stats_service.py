@@ -10,8 +10,12 @@ STAFF_ROLES = {User.Role.ADMIN, User.Role.MANAGER, User.Role.COURIER}
 
 class StatsService:
 
-    def staff_stats(self) -> dict:
+    def staff_stats(self, date_from=None, date_to=None) -> dict:
         staff = User.objects.filter(role__in=STAFF_ROLES, deleted_at__isnull=True)
+        if date_from:
+            staff = staff.filter(created_at__gte=date_from)
+        if date_to:
+            staff = staff.filter(created_at__lte=date_to)
         return {
             "total": staff.count(),
             "by_role": dict(
@@ -21,12 +25,21 @@ class StatsService:
             "inactive": staff.filter(is_active=False).count(),
         }
 
-    def customer_stats(self, reference_lat=None, reference_lng=None) -> dict:
+    def customer_stats(self, reference_lat=None, reference_lng=None, date_from=None, date_to=None) -> dict:
         customers = User.objects.filter(role=User.Role.CLIENT, deleted_at__isnull=True)
+        if date_from:
+            customers = customers.filter(created_at__gte=date_from)
+        if date_to:
+            customers = customers.filter(created_at__lte=date_to)
+
         total = customers.count()
         active = customers.filter(is_active=True).count()
 
         orders = Order.objects.filter(user__role=User.Role.CLIENT)
+        if date_from:
+            orders = orders.filter(created_at__gte=date_from)
+        if date_to:
+            orders = orders.filter(created_at__lte=date_to)
         completed = orders.exclude(status__in=["cancelled"])
 
         buyers = completed.values("user").distinct().count()
@@ -55,14 +68,25 @@ class StatsService:
         )
 
         now = timezone.now()
-        new_7d = customers.filter(created_at__gte=now - timedelta(days=7)).count()
-        new_30d = customers.filter(created_at__gte=now - timedelta(days=30)).count()
+        all_customers = User.objects.filter(role=User.Role.CLIENT, deleted_at__isnull=True)
+        new_7d = all_customers.filter(created_at__gte=now - timedelta(days=7)).count()
+        new_30d = all_customers.filter(created_at__gte=now - timedelta(days=30)).count()
         active_buyers_30d = (
-            completed.filter(created_at__gte=now - timedelta(days=30))
+            Order.objects.filter(
+                user__role=User.Role.CLIENT,
+                created_at__gte=now - timedelta(days=30),
+            )
+            .exclude(status="cancelled")
             .values("user").distinct().count()
         )
 
-        never_ordered = total - buyers
+        all_total = all_customers.count()
+        all_buyers = (
+            Order.objects.filter(user__role=User.Role.CLIENT)
+            .exclude(status="cancelled")
+            .values("user").distinct().count()
+        )
+        never_ordered = all_total - all_buyers
 
         result = {
             "total_customers": total,
@@ -140,9 +164,22 @@ class StatsService:
 
         return result
 
-    def overview(self) -> dict:
+    def overview(self, date_from=None, date_to=None) -> dict:
         now = timezone.now()
         today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+        if date_from and date_to:
+            orders = Order.objects.filter(created_at__gte=date_from, created_at__lte=date_to)
+            completed = orders.exclude(status="cancelled")
+            return {
+                "orders": orders.count(),
+                "revenue": str(completed.aggregate(s=Sum("total"))["s"] or 0),
+                "total_products": Product.objects.filter(is_active=True, deleted_at__isnull=True).count(),
+                "total_categories": Category.objects.filter(is_active=True, deleted_at__isnull=True).count(),
+                "pending_orders": Order.objects.filter(status="pending").count(),
+                "date_from": date_from.isoformat(),
+                "date_to": date_to.isoformat(),
+            }
 
         orders_today = Order.objects.filter(created_at__gte=today)
         orders_7d = Order.objects.filter(created_at__gte=now - timedelta(days=7))

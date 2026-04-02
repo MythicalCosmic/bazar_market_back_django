@@ -4,7 +4,7 @@ from django.db.models import Count, Sum, Q
 from base.interfaces.category import ICategoryRepository
 from base.exceptions import NotFoundError, ValidationError
 from admins.dto.category import CreateCategoryDTO, UpdateCategoryDTO
-from base.models import Category, OrderItem
+from base.models import Category
 
 
 class CategoryService:
@@ -101,8 +101,6 @@ class CategoryService:
                     raise ValidationError("Parent category not found")
                 if parent.parent_id is not None:
                     raise ValidationError("Only one level of nesting allowed")
-            if new_parent_id is None and category.parent_id is not None:
-                pass
             child_ids = list(
                 self.category_repository.get_all()
                 .filter(parent_id=category_id)
