@@ -259,6 +259,7 @@ class Product(TimestampMixin, SoftDeleteMixin):
 
     sort_order = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True)
+    is_featured = models.BooleanField(default=False)
 
     class Meta:
         db_table = "products"
@@ -270,6 +271,7 @@ class Product(TimestampMixin, SoftDeleteMixin):
             models.Index(fields=["category_id", "sort_order"], name="idx_products_cat_sort"),
             models.Index(fields=["uuid"], name="idx_products_uuid"),
             models.Index(fields=["price"], name="idx_products_price"),
+            models.Index(fields=["is_featured", "sort_order"], name="idx_products_featured_sort"),
         ]
 
     def __str__(self) -> str:

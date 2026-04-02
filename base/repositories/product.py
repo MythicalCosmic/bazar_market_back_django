@@ -25,12 +25,15 @@ class ProductRepository(SoftDeleteRepository[Product]):
     def get_available_by_category(self, category_id: int) -> QuerySet[Product]:
         return self.get_available().filter(category_id=category_id)
 
-    def search(self, query: str) -> QuerySet[Product]:
+    def get_featured(self) -> QuerySet[Product]:
+        return self.get_active().filter(is_featured=True).order_by("sort_order")
+
+    def search_by_name(self, query: str) -> QuerySet[Product]:
         return self.get_queryset().filter(
             Q(name_uz__icontains=query) | Q(name_ru__icontains=query)
         )
 
-    def search_available(self, query: str) -> QuerySet[Product]:
+    def search_available_by_name(self, query: str) -> QuerySet[Product]:
         return self.get_available().filter(
             Q(name_uz__icontains=query) | Q(name_ru__icontains=query)
         )
@@ -53,6 +56,12 @@ class ProductRepository(SoftDeleteRepository[Product]):
 
     def mark_in_stock(self, product: Product) -> Product:
         return self.update(product, in_stock=True)
+
+    def feature(self, product: Product) -> Product:
+        return self.update(product, is_featured=True)
+
+    def unfeature(self, product: Product) -> Product:
+        return self.update(product, is_featured=False)
 
     def deactivate(self, product: Product) -> Product:
         return self.update(product, is_active=False)
