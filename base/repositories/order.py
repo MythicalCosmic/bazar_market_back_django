@@ -41,6 +41,10 @@ class OrderRepository(BaseRepository[Order]):
         kwargs: dict = {"status": status}
         if status == Order.Status.CONFIRMED:
             kwargs["confirmed_at"] = now
+        elif status == Order.Status.PREPARING:
+            kwargs["preparing_at"] = now
+        elif status == Order.Status.DELIVERING:
+            kwargs["delivering_at"] = now
         elif status == Order.Status.DELIVERED:
             kwargs["delivered_at"] = now
         elif status == Order.Status.COMPLETED:

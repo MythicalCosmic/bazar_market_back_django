@@ -390,6 +390,13 @@ class Order(TimestampMixin):
         help_text='e.g. "ORD-20260323-0042"',
     )
     user = models.ForeignKey(User, on_delete=models.PROTECT, related_name="orders")
+    assigned_courier = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="assigned_orders",
+    )
 
     # Status
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
@@ -433,6 +440,8 @@ class Order(TimestampMixin):
 
     # Status timestamps
     confirmed_at = models.DateTimeField(null=True, blank=True)
+    preparing_at = models.DateTimeField(null=True, blank=True)
+    delivering_at = models.DateTimeField(null=True, blank=True)
     delivered_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
     cancelled_at = models.DateTimeField(null=True, blank=True)
@@ -449,6 +458,7 @@ class Order(TimestampMixin):
             models.Index(fields=["created_at", "status"], name="idx_orders_daily_analytics"),
             models.Index(fields=["payment_status"], name="idx_orders_pay_status"),
             models.Index(fields=["order_number"], name="idx_orders_number"),
+            models.Index(fields=["assigned_courier_id", "status"], name="idx_orders_courier_status"),
         ]
 
     def __str__(self) -> str:
@@ -754,12 +764,31 @@ class Favorite(models.Model):
 
 
 class Review(models.Model):
+    class ModerationStatus(models.TextChoices):
+        PENDING = "pending", "Pending"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Rejected"
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="reviews")
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="reviews")
     rating = models.IntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(5)],
     )
     comment = models.TextField(blank=True, default="")
+    admin_reply = models.TextField(blank=True, default="")
+    moderation_status = models.CharField(
+        max_length=20,
+        choices=ModerationStatus.choices,
+        default=ModerationStatus.PENDING,
+    )
+    moderated_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    moderated_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -773,6 +802,7 @@ class Review(models.Model):
         indexes = [
             models.Index(fields=["order_id"], name="idx_reviews_order"),
             models.Index(fields=["rating"], name="idx_reviews_rating"),
+            models.Index(fields=["moderation_status"], name="idx_reviews_moderation"),
         ]
 
     def __str__(self) -> str:
