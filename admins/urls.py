@@ -26,6 +26,28 @@ from admins.views.v1.order_views import (
     bulk_update_status_view, get_min_order_view, set_min_order_view,
     order_stats_view,
 )
+from admins.views.v1.banner_views import (
+    list_banners_view, get_banner_view, create_banner_view, update_banner_view,
+    delete_banner_view, reorder_banners_view, activate_banner_view, deactivate_banner_view,
+    banner_stats_view,
+)
+from admins.views.v1.coupon_views import (
+    list_coupons_view, get_coupon_view, create_coupon_view, update_coupon_view,
+    delete_coupon_view, activate_coupon_view, deactivate_coupon_view,
+    coupon_stats_view,
+)
+from admins.views.v1.discount_views import (
+    list_discounts_view, get_discount_view, create_discount_view, update_discount_view,
+    delete_discount_view, restore_discount_view, activate_discount_view, deactivate_discount_view,
+    set_discount_products_view, add_discount_products_view, remove_discount_products_view,
+    set_discount_categories_view, add_discount_categories_view, remove_discount_categories_view,
+    discount_stats_view,
+)
+from admins.views.v1.delivery_zone_views import (
+    list_zones_view, get_zone_view, create_zone_view, update_zone_view,
+    delete_zone_view, reorder_zones_view, activate_zone_view, deactivate_zone_view,
+    zone_stats_view,
+)
 
 app_name = "admins"
 
@@ -94,10 +116,55 @@ urlpatterns = [
     path('order/<int:order_id>/note', add_admin_note_view, name="order-note"),
     path('order/<int:order_id>/cancel', cancel_order_view, name="order-cancel"),
 
+    path('banners', list_banners_view, name="banners"),
+    path('banners/reorder', reorder_banners_view, name="banners-reorder"),
+    path('banner/<int:banner_id>', get_banner_view, name="banner"),
+    path('banner/create', create_banner_view, name="banner-create"),
+    path('banner/<int:banner_id>/update', update_banner_view, name="banner-update"),
+    path('banner/<int:banner_id>/delete', delete_banner_view, name="banner-delete"),
+    path('banner/<int:banner_id>/activate', activate_banner_view, name="banner-activate"),
+    path('banner/<int:banner_id>/deactivate', deactivate_banner_view, name="banner-deactivate"),
+
+    path('coupons', list_coupons_view, name="coupons"),
+    path('coupon/<int:coupon_id>', get_coupon_view, name="coupon"),
+    path('coupon/create', create_coupon_view, name="coupon-create"),
+    path('coupon/<int:coupon_id>/update', update_coupon_view, name="coupon-update"),
+    path('coupon/<int:coupon_id>/delete', delete_coupon_view, name="coupon-delete"),
+    path('coupon/<int:coupon_id>/activate', activate_coupon_view, name="coupon-activate"),
+    path('coupon/<int:coupon_id>/deactivate', deactivate_coupon_view, name="coupon-deactivate"),
+
+    path('discounts', list_discounts_view, name="discounts"),
+    path('discount/<int:discount_id>', get_discount_view, name="discount"),
+    path('discount/create', create_discount_view, name="discount-create"),
+    path('discount/<int:discount_id>/update', update_discount_view, name="discount-update"),
+    path('discount/<int:discount_id>/delete', delete_discount_view, name="discount-delete"),
+    path('discount/<int:discount_id>/restore', restore_discount_view, name="discount-restore"),
+    path('discount/<int:discount_id>/activate', activate_discount_view, name="discount-activate"),
+    path('discount/<int:discount_id>/deactivate', deactivate_discount_view, name="discount-deactivate"),
+    path('discount/<int:discount_id>/products/set', set_discount_products_view, name="discount-products-set"),
+    path('discount/<int:discount_id>/products/add', add_discount_products_view, name="discount-products-add"),
+    path('discount/<int:discount_id>/products/remove', remove_discount_products_view, name="discount-products-remove"),
+    path('discount/<int:discount_id>/categories/set', set_discount_categories_view, name="discount-categories-set"),
+    path('discount/<int:discount_id>/categories/add', add_discount_categories_view, name="discount-categories-add"),
+    path('discount/<int:discount_id>/categories/remove', remove_discount_categories_view, name="discount-categories-remove"),
+
+    path('zones', list_zones_view, name="zones"),
+    path('zones/reorder', reorder_zones_view, name="zones-reorder"),
+    path('zone/<int:zone_id>', get_zone_view, name="zone"),
+    path('zone/create', create_zone_view, name="zone-create"),
+    path('zone/<int:zone_id>/update', update_zone_view, name="zone-update"),
+    path('zone/<int:zone_id>/delete', delete_zone_view, name="zone-delete"),
+    path('zone/<int:zone_id>/activate', activate_zone_view, name="zone-activate"),
+    path('zone/<int:zone_id>/deactivate', deactivate_zone_view, name="zone-deactivate"),
+
     path('stats/overview', overview_view, name="stats-overview"),
     path('stats/staff', staff_stats_view, name="stats-staff"),
     path('stats/customers', customer_stats_view, name="stats-customers"),
     path('stats/categories', category_stats_view, name="stats-categories"),
     path('stats/products', product_stats_view, name="stats-products"),
     path('stats/orders', order_stats_view, name="stats-orders"),
+    path('stats/banners', banner_stats_view, name="stats-banners"),
+    path('stats/coupons', coupon_stats_view, name="stats-coupons"),
+    path('stats/discounts', discount_stats_view, name="stats-discounts"),
+    path('stats/zones', zone_stats_view, name="stats-zones"),
 ]
