@@ -18,6 +18,14 @@ from admins.views.v1.product_views import (
     assign_discounts_view, remove_discounts_view,
     product_stats_view,
 )
+from admins.views.v1.address_views import list_addresses_view, user_addresses_view, get_address_view
+from admins.views.v1.order_views import (
+    list_orders_view, get_order_view, update_order_status_view,
+    assign_courier_view, unassign_courier_view,
+    update_payment_status_view, add_admin_note_view, cancel_order_view,
+    bulk_update_status_view, get_min_order_view, set_min_order_view,
+    order_stats_view,
+)
 
 app_name = "admins"
 
@@ -39,6 +47,10 @@ urlpatterns = [
     path('customer/<int:customer_id>/update', update_customer_view, name="customer-update"),
     path('customer/<int:customer_id>/deactivate', deactivate_customer_view, name="customer-deactivate"),
     path('customer/<int:customer_id>/activate', activate_customer_view, name="customer-activate"),
+
+    path('addresses', list_addresses_view, name="addresses"),
+    path('addresses/user/<int:user_id>', user_addresses_view, name="user-addresses"),
+    path('address/<int:address_id>', get_address_view, name="address"),
 
     path('categories', list_categories_view, name="categories"),
     path('categories/tree', category_tree_view, name="categories-tree"),
@@ -70,9 +82,22 @@ urlpatterns = [
     path('product/<int:product_id>/discounts/assign', assign_discounts_view, name="product-discounts-assign"),
     path('product/<int:product_id>/discounts/remove', remove_discounts_view, name="product-discounts-remove"),
 
+    path('orders', list_orders_view, name="orders"),
+    path('orders/bulk-status', bulk_update_status_view, name="orders-bulk-status"),
+    path('orders/min-order', get_min_order_view, name="orders-min-order-get"),
+    path('orders/min-order/set', set_min_order_view, name="orders-min-order-set"),
+    path('order/<int:order_id>', get_order_view, name="order"),
+    path('order/<int:order_id>/status', update_order_status_view, name="order-status"),
+    path('order/<int:order_id>/assign-courier', assign_courier_view, name="order-assign-courier"),
+    path('order/<int:order_id>/unassign-courier', unassign_courier_view, name="order-unassign-courier"),
+    path('order/<int:order_id>/payment-status', update_payment_status_view, name="order-payment-status"),
+    path('order/<int:order_id>/note', add_admin_note_view, name="order-note"),
+    path('order/<int:order_id>/cancel', cancel_order_view, name="order-cancel"),
+
     path('stats/overview', overview_view, name="stats-overview"),
     path('stats/staff', staff_stats_view, name="stats-staff"),
     path('stats/customers', customer_stats_view, name="stats-customers"),
     path('stats/categories', category_stats_view, name="stats-categories"),
     path('stats/products', product_stats_view, name="stats-products"),
+    path('stats/orders', order_stats_view, name="stats-orders"),
 ]

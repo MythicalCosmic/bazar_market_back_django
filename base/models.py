@@ -390,6 +390,13 @@ class Order(TimestampMixin):
         help_text='e.g. "ORD-20260323-0042"',
     )
     user = models.ForeignKey(User, on_delete=models.PROTECT, related_name="orders")
+    assigned_courier = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="assigned_orders",
+    )
 
     # Status
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
@@ -433,6 +440,8 @@ class Order(TimestampMixin):
 
     # Status timestamps
     confirmed_at = models.DateTimeField(null=True, blank=True)
+    preparing_at = models.DateTimeField(null=True, blank=True)
+    delivering_at = models.DateTimeField(null=True, blank=True)
     delivered_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
     cancelled_at = models.DateTimeField(null=True, blank=True)
@@ -449,6 +458,7 @@ class Order(TimestampMixin):
             models.Index(fields=["created_at", "status"], name="idx_orders_daily_analytics"),
             models.Index(fields=["payment_status"], name="idx_orders_pay_status"),
             models.Index(fields=["order_number"], name="idx_orders_number"),
+            models.Index(fields=["assigned_courier_id", "status"], name="idx_orders_courier_status"),
         ]
 
     def __str__(self) -> str:
