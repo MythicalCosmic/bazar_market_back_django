@@ -764,12 +764,31 @@ class Favorite(models.Model):
 
 
 class Review(models.Model):
+    class ModerationStatus(models.TextChoices):
+        PENDING = "pending", "Pending"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Rejected"
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="reviews")
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="reviews")
     rating = models.IntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(5)],
     )
     comment = models.TextField(blank=True, default="")
+    admin_reply = models.TextField(blank=True, default="")
+    moderation_status = models.CharField(
+        max_length=20,
+        choices=ModerationStatus.choices,
+        default=ModerationStatus.PENDING,
+    )
+    moderated_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    moderated_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -783,6 +802,7 @@ class Review(models.Model):
         indexes = [
             models.Index(fields=["order_id"], name="idx_reviews_order"),
             models.Index(fields=["rating"], name="idx_reviews_rating"),
+            models.Index(fields=["moderation_status"], name="idx_reviews_moderation"),
         ]
 
     def __str__(self) -> str:

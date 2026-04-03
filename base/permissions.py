@@ -25,6 +25,7 @@ class P:
     MANAGE_PAYMENTS = "manage_payments"
     MANAGE_NOTIFICATIONS = "manage_notifications"
     MANAGE_ANALYTICS = "manage_analytics"
+    MANAGE_REVIEWS = "manage_reviews"
 
     VIEW_USERS = "view_users"
     VIEW_CATEGORIES = "view_categories"
@@ -33,6 +34,7 @@ class P:
     VIEW_PAYMENTS = "view_payments"
     VIEW_ANALYTICS = "view_analytics"
     VIEW_DELIVERY_ZONES = "view_delivery_zones"
+    VIEW_REVIEWS = "view_reviews"
 
     ASSIGN_ORDERS = "assign_orders"
     UPDATE_ORDER_STATUS = "update_order_status"
@@ -50,9 +52,11 @@ DEFAULT_ROLE_PERMISSIONS = {
         P.MANAGE_CATEGORIES, P.MANAGE_PRODUCTS, P.MANAGE_BANNERS,
         P.MANAGE_COUPONS, P.MANAGE_DISCOUNTS, P.MANAGE_ORDERS,
         P.MANAGE_NOTIFICATIONS, P.MANAGE_DELIVERY_ZONES,
+        P.MANAGE_REVIEWS, P.MANAGE_PAYMENTS,
         P.VIEW_USERS, P.VIEW_CATEGORIES, P.VIEW_PRODUCTS,
         P.VIEW_ORDERS, P.VIEW_PAYMENTS, P.VIEW_ANALYTICS,
-        P.VIEW_DELIVERY_ZONES, P.ASSIGN_ORDERS, P.UPDATE_ORDER_STATUS,
+        P.VIEW_DELIVERY_ZONES, P.VIEW_REVIEWS,
+        P.ASSIGN_ORDERS, P.UPDATE_ORDER_STATUS,
     },
 
     "courier": {
