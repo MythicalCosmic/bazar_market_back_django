@@ -26,7 +26,7 @@ MIDDLEWARE = [
     "base.middlewares.forceJsonResponseMiddleware.JSONResponseMiddleware",
 ]
 
-TELESCOPE_ENABLED = os.getenv("TELESCOPE_ENABLED", "false").lower() == "true"
+TELESCOPE_ENABLED = True
 
 if TELESCOPE_ENABLED:
     MIDDLEWARE.insert(0, "telescope.middleware.TelescopeMiddleware")

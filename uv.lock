@@ -61,6 +61,7 @@ dependencies = [
     { name = "django-scope" },
     { name = "djangorestframework" },
     { name = "dotenv" },
+    { name = "limitless-py" },
     { name = "psycopg" },
     { name = "psycopg2" },
 ]
@@ -72,6 +73,7 @@ requires-dist = [
     { name = "django-scope", specifier = ">=1.0.1" },
     { name = "djangorestframework", specifier = ">=3.17.1" },
     { name = "dotenv", specifier = ">=0.9.9" },
+    { name = "limitless-py", specifier = ">=0.2.0" },
     { name = "psycopg", specifier = ">=3.3.3" },
     { name = "psycopg2", specifier = ">=2.9.11" },
 ]
@@ -309,6 +311,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ef/3c/82e84109e02c492f382c711c58a3dd91badda6d746def81a1465f74dc9f5/incremental-24.11.0.tar.gz", hash = "sha256:87d3480dbb083c1d736222511a8cf380012a8176c2456d01ef483242abbbcf8c", size = 24000, upload-time = "2025-11-28T02:30:17.861Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/1d/55/0f4df2a44053867ea9cbea73fc588b03c55605cd695cee0a3d86f0029cb2/incremental-24.11.0-py3-none-any.whl", hash = "sha256:a34450716b1c4341fe6676a0598e88a39e04189f4dce5dc96f656e040baa10b3", size = 21109, upload-time = "2025-11-28T02:30:16.442Z" },
+]
+
+[[package]]
+name = "limitless-py"
+version = "0.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/e9/de/69808e85cf580c560aab51ecde4905322b24a45f2a8cb73f38a8dcd17018/limitless_py-0.2.0.tar.gz", hash = "sha256:5d9069955e42b270e82cb97ec92252e8772fa8f2696a0537062ad6e79b5098bb", size = 3344, upload-time = "2025-11-02T17:37:38.626Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8b/9b/2d9abaab55308120c36d2639add9043fd07d96148e0e09fa5a7e91c2a304/limitless_py-0.2.0-py3-none-any.whl", hash = "sha256:2318e8ec9247182ee31c0634b267bf1889a648f5ad30f22f59d005a9e3618368", size = 4281, upload-time = "2025-11-02T17:37:36.434Z" },
 ]
 
 [[package]]

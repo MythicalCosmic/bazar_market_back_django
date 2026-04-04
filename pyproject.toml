@@ -10,6 +10,7 @@ dependencies = [
     "django-scope>=1.0.1",
     "djangorestframework>=3.17.1",
     "dotenv>=0.9.9",
+    "limitless-py>=0.2.0",
     "psycopg>=3.3.3",
     "psycopg2>=2.9.11",
 ]
