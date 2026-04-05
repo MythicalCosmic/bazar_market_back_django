@@ -1,29 +1,17 @@
 import json
 
-from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_GET
 from base.container import container
 from base.responses import success, error
 from admins.dto.auth import LoginDTO, SessionDTO
 from admins.services.v1.auth_service import AuthService
-from limitless_py import ratelimit
-
-
-def _get_ip(request, **kwargs):
-    return request.META.get("HTTP_X_FORWARDED_FOR", "").split(",")[0].strip() or request.META.get("REMOTE_ADDR", "")
-
-
-def _reject_429(request, **kwargs):
-    return JsonResponse(
-        {"success": False, "message": "Too many requests. Please try again later."},
-        status=429,
-    )
+from base.ratelimit import ratelimit
 
 
 @csrf_exempt
 @require_POST
-@ratelimit(5, per=60, key_func=_get_ip, reject=_reject_429)
+@ratelimit(5, per=60)
 def login_view(request):
     try:
         data = json.loads(request.body)
@@ -75,7 +63,7 @@ def logout_all_view(request):
 
 @csrf_exempt
 @require_GET
-@ratelimit(30, per=60, key_func=_get_ip, reject=_reject_429)
+@ratelimit(30, per=60)
 def me_view(request):
     auth_header = request.META.get("HTTP_AUTHORIZATION", "")
     if not auth_header.startswith("Bearer "):
