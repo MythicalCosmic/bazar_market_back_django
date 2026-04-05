@@ -1,0 +1,4147 @@
+{
+  "info": {
+    "_postman_id": "15f1931a-6fd5-4a67-8c72-55e3cdf073c9",
+    "name": "Bazar Market Admin API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "session_key",
+      "value": ""
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{session_key}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Auto-capture session_key from login response",
+          "if (pm.info.requestName === 'Login' && pm.response.code === 200) {",
+          "    var json = pm.response.json();",
+          "    if (json.data && json.data.session_key) {",
+          "        pm.collectionVariables.set('session_key', json.data.session_key);",
+          "        console.log('session_key saved: ' + json.data.session_key);",
+          "    }",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/auth-login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "auth-login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"test1234\",\n  \"device\": \"Postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.session_key) {",
+                  "        pm.collectionVariables.set('session_key', json.data.session_key);",
+                  "        console.log('session_key saved');",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/auth-logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "auth-logout"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout All",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/auth-logout-all",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "auth-logout-all"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/auth-me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "auth-me"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "users"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "User",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/user/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "user",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/user/create",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "user",
+                "create"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"newuser\",\n  \"first_name\": \"Test\",\n  \"last_name\": \"User\",\n  \"role\": \"manager\",\n  \"password\": \"test1234\",\n  \"phone\": \"+998901111111\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/user/1/update",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "user",
+                "1",
+                "update"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Updated\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/user/1/delete",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "user",
+                "1",
+                "delete"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Restore",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/user/1/restore",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "user",
+                "1",
+                "restore"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Customers",
+      "item": [
+        {
+          "name": "Customers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/customers",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "customers"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Customer",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/customer/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "customer",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Customer Update",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/customer/1/update",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "customer",
+                "1",
+                "update"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Updated\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Customer Deactivate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/customer/1/deactivate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "customer",
+                "1",
+                "deactivate"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Customer Activate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/customer/1/activate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "customer",
+                "1",
+                "activate"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Addresses",
+      "item": [
+        {
+          "name": "Addresses",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/addresses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "addresses"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "User Addresses",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/addresses/user/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "addresses",
+                "user",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Address",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/address/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "address",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "Categories",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/categories",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "categories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Categories Tree",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/categories/tree",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "categories",
+                "tree"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Categories Reorder",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/categories/reorder",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "categories",
+                "reorder"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [\n    1,\n    2,\n    3\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Category",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/category/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "category",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Category Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/category/create",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "category",
+                "create"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name_uz\": \"Test kategoriya\",\n  \"name_ru\": \"Тест категория\",\n  \"sort_order\": 0,\n  \"is_active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Category Update",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/category/1/update",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "category",
+                "1",
+                "update"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name_uz\": \"Updated kategoriya\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Category Delete",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/category/1/delete",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "category",
+                "1",
+                "delete"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Category Restore",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/category/1/restore",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "category",
+                "1",
+                "restore"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Category Activate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/category/1/activate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "category",
+                "1",
+                "activate"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Category Deactivate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/category/1/deactivate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "category",
+                "1",
+                "deactivate"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/products",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "products"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Products Reorder",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/products/reorder",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "products",
+                "reorder"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [\n    1,\n    2,\n    3\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Product",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/product/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "product",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Product Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/product/create",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "product",
+                "create"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_id\": 1,\n  \"name_uz\": \"Test mahsulot\",\n  \"unit\": \"kg\",\n  \"price\": \"15000\",\n  \"step\": \"0.5\",\n  \"min_qty\": \"0.5\",\n  \"in_stock\": true,\n  \"is_active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Product Update",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/product/1/update",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "product",
+                "1",
+                "update"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name_uz\": \"Updated mahsulot\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Product Delete",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/product/1/delete",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "product",
+                "1",
+                "delete"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Product Restore",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/product/1/restore",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "product",
+                "1",
+                "restore"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Product Activate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/product/1/activate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "product",
+                "1",
+                "activate"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Product Deactivate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/product/1/deactivate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "product",
+                "1",
+                "deactivate"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Product Feature",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/product/1/feature",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "product",
+                "1",
+                "feature"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Product Unfeature",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/product/1/unfeature",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "product",
+                "1",
+                "unfeature"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Product Stock",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/product/1/stock",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "product",
+                "1",
+                "stock"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stock_qty\": \"100\",\n  \"in_stock\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Product Images Add",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/product/1/images",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "product",
+                "1",
+                "images"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"images\": [\n    {\n      \"image\": \"https://placehold.co/400x400?text=Test\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Product Images Reorder",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/product/1/images/reorder",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "product",
+                "1",
+                "images",
+                "reorder"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [\n    1,\n    2\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Product Image Remove",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/product/1/image/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "product",
+                "1",
+                "image",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Product Image Primary",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/product/1/image/1/primary",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "product",
+                "1",
+                "image",
+                "1",
+                "primary"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Product Discounts Assign",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/product/1/discounts/assign",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "product",
+                "1",
+                "discounts",
+                "assign"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"discount_ids\": [\n    1\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Product Discounts Remove",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/product/1/discounts/remove",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "product",
+                "1",
+                "discounts",
+                "remove"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"discount_ids\": [\n    1\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/orders",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "orders"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Orders Bulk Status",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/orders/bulk-status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "orders",
+                "bulk-status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order_ids\": [\n    1,\n    2\n  ],\n  \"status\": \"confirmed\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Orders Min Order Get",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/orders/min-order",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "orders",
+                "min-order"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Orders Min Order Set",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/orders/min-order/set",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "orders",
+                "min-order",
+                "set"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 30000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Order",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/order/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "order",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Order Status",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/order/1/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "order",
+                "1",
+                "status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"confirmed\",\n  \"note\": \"Confirmed via Postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Order Assign Courier",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/order/1/assign-courier",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "order",
+                "1",
+                "assign-courier"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"courier_id\": 4\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Order Unassign Courier",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/order/1/unassign-courier",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "order",
+                "1",
+                "unassign-courier"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Order Payment Status",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/order/1/payment-status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "order",
+                "1",
+                "payment-status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payment_status\": \"paid\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Order Note",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/order/1/note",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "order",
+                "1",
+                "note"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Test note from Postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Order Cancel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/order/1/cancel",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "order",
+                "1",
+                "cancel"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Test cancel\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Banners",
+      "item": [
+        {
+          "name": "Banners",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/banners",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "banners"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Banners Reorder",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/banners/reorder",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "banners",
+                "reorder"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [\n    1,\n    2,\n    3\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Banner",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/banner/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "banner",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Banner Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/banner/create",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "banner",
+                "create"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"image\": \"https://placehold.co/800x400?text=Test\",\n  \"title\": \"Test banner\",\n  \"link_type\": \"none\",\n  \"sort_order\": 0,\n  \"is_active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Banner Update",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/banner/1/update",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "banner",
+                "1",
+                "update"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated banner\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Banner Delete",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/banner/1/delete",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "banner",
+                "1",
+                "delete"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Banner Activate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/banner/1/activate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "banner",
+                "1",
+                "activate"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Banner Deactivate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/banner/1/deactivate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "banner",
+                "1",
+                "deactivate"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Coupons",
+      "item": [
+        {
+          "name": "Coupons",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/coupons",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "coupons"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Coupon",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/coupon/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "coupon",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Coupon Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/coupon/create",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "coupon",
+                "create"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"TESTCOUPON\",\n  \"type\": \"percent\",\n  \"value\": 10,\n  \"max_discount\": 20000,\n  \"per_user_limit\": 1,\n  \"is_active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Coupon Update",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/coupon/1/update",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "coupon",
+                "1",
+                "update"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": 15\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Coupon Delete",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/coupon/1/delete",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "coupon",
+                "1",
+                "delete"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Coupon Activate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/coupon/1/activate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "coupon",
+                "1",
+                "activate"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Coupon Deactivate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/coupon/1/deactivate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "coupon",
+                "1",
+                "deactivate"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Discounts",
+      "item": [
+        {
+          "name": "Discounts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/discounts",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "discounts"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Discount",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/discount/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "discount",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Discount Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/discount/create",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "discount",
+                "create"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name_uz\": \"Test chegirma\",\n  \"type\": \"percent\",\n  \"value\": 10,\n  \"is_active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Discount Update",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/discount/1/update",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "discount",
+                "1",
+                "update"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name_uz\": \"Updated chegirma\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Discount Delete",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/discount/1/delete",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "discount",
+                "1",
+                "delete"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Discount Restore",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/discount/1/restore",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "discount",
+                "1",
+                "restore"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Discount Activate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/discount/1/activate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "discount",
+                "1",
+                "activate"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Discount Deactivate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/discount/1/deactivate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "discount",
+                "1",
+                "deactivate"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Discount Products Set",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/discount/1/products/set",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "discount",
+                "1",
+                "products",
+                "set"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_ids\": [\n    1,\n    2\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Discount Products Add",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/discount/1/products/add",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "discount",
+                "1",
+                "products",
+                "add"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_ids\": [\n    3\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Discount Products Remove",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/discount/1/products/remove",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "discount",
+                "1",
+                "products",
+                "remove"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_ids\": [\n    3\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Discount Categories Set",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/discount/1/categories/set",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "discount",
+                "1",
+                "categories",
+                "set"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_ids\": [\n    1\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Discount Categories Add",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/discount/1/categories/add",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "discount",
+                "1",
+                "categories",
+                "add"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_ids\": [\n    2\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Discount Categories Remove",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/discount/1/categories/remove",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "discount",
+                "1",
+                "categories",
+                "remove"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_ids\": [\n    2\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Delivery Zones",
+      "item": [
+        {
+          "name": "Zones",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/zones",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "zones"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Zones Reorder",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/zones/reorder",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "zones",
+                "reorder"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [\n    1,\n    2,\n    3\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Zone",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/zone/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "zone",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Zone Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/zone/create",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "zone",
+                "create"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test zona\",\n  \"polygon\": {\n    \"type\": \"Polygon\",\n    \"coordinates\": []\n  },\n  \"delivery_fee\": \"10000\",\n  \"min_order\": \"50000\",\n  \"estimated_minutes\": 30\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Zone Update",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/zone/1/update",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "zone",
+                "1",
+                "update"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated zona\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Zone Delete",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/zone/1/delete",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "zone",
+                "1",
+                "delete"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Zone Activate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/zone/1/activate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "zone",
+                "1",
+                "activate"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Zone Deactivate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/zone/1/deactivate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "zone",
+                "1",
+                "deactivate"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Reviews",
+      "item": [
+        {
+          "name": "Reviews",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/reviews",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "reviews"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reviews Bulk Approve",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/reviews/bulk-approve",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "reviews",
+                "bulk-approve"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"review_ids\": [\n    1,\n    2\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reviews Bulk Reject",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/reviews/bulk-reject",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "reviews",
+                "bulk-reject"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"review_ids\": [\n    3\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Review",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/review/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "review",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Review Approve",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/review/1/approve",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "review",
+                "1",
+                "approve"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Review Reject",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/review/1/reject",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "review",
+                "1",
+                "reject"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Review Reply",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/review/1/reply",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "review",
+                "1",
+                "reply"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reply\": \"Rahmat!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Review Delete",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/review/1/delete",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "review",
+                "1",
+                "delete"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Payments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/payments",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "payments"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Payment",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/payment/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "payment",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Payment Status",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/payment/1/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "payment",
+                "1",
+                "status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payment_status\": \"paid\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Payment Refund",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/payment/1/refund",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "payment",
+                "1",
+                "refund"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Customer request\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Payments By Order",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/payments/order/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "payments",
+                "order",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/notifications",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "notifications"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Notifications Send Bulk",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/notifications/send",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "notifications",
+                "send"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Bulk test\",\n  \"body\": \"Hello everyone\",\n  \"type\": \"promo\",\n  \"channel\": \"telegram\",\n  \"role\": \"client\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Notification",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/notification/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "notification",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Notification Delete",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/notification/1/delete",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "notification",
+                "1",
+                "delete"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Notification Send",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/notification/user/1/send",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "notification",
+                "user",
+                "1",
+                "send"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Test notification\",\n  \"body\": \"Hello from Postman\",\n  \"type\": \"promo\",\n  \"channel\": \"telegram\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Notification User Delete",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/notification/user/1/delete",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "notification",
+                "user",
+                "1",
+                "delete"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Roles & Permissions",
+      "item": [
+        {
+          "name": "Permissions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/permissions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "permissions"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Permission Groups",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/permissions/groups",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "permissions",
+                "groups"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Permissions Sync",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/permissions/sync",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "permissions",
+                "sync"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Role Permissions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/role/manager/permissions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "role",
+                "manager",
+                "permissions"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Role Permissions Set",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/role/manager/permissions/set",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "role",
+                "manager",
+                "permissions",
+                "set"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"permissions\": [\n    \"view_orders\",\n    \"view_users\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Role Permissions Reset",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/role/manager/permissions/reset",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "role",
+                "manager",
+                "permissions",
+                "reset"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "User Permissions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/user/1/permissions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "user",
+                "1",
+                "permissions"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "User Permission Grant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/user/1/permissions/grant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "user",
+                "1",
+                "permissions",
+                "grant"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"permission\": \"manage_orders\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "User Permission Deny",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/user/1/permissions/deny",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "user",
+                "1",
+                "permissions",
+                "deny"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"permission\": \"manage_orders\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "User Permission Remove",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/user/1/permissions/remove",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "user",
+                "1",
+                "permissions",
+                "remove"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"permission\": \"manage_orders\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "User Permissions Clear",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/user/1/permissions/clear",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "user",
+                "1",
+                "permissions",
+                "clear"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Settings",
+      "item": [
+        {
+          "name": "Settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/settings",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "settings"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Settings Set",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/settings/set",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "settings",
+                "set"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"test_setting\",\n  \"value\": \"hello\",\n  \"type\": \"string\",\n  \"description\": \"Test setting from Postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Setting",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/setting/test_setting",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "setting",
+                "test_setting"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Setting Delete",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/setting/test_setting/delete",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "setting",
+                "test_setting",
+                "delete"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Favorites",
+      "item": [
+        {
+          "name": "Favorites",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/favorites",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "favorites"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Favorites Most",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/favorites/most",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "favorites",
+                "most"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Stats",
+      "item": [
+        {
+          "name": "Stats Overview",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/stats/overview",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "stats",
+                "overview"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Stats Staff",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/stats/staff",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "stats",
+                "staff"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Stats Customers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/stats/customers",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "stats",
+                "customers"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Stats Categories",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/stats/categories",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "stats",
+                "categories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Stats Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/stats/products",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "stats",
+                "products"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Stats Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/stats/orders",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "stats",
+                "orders"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Stats Banners",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/stats/banners",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "stats",
+                "banners"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Stats Coupons",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/stats/coupons",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "stats",
+                "coupons"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Stats Discounts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/stats/discounts",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "stats",
+                "discounts"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Stats Zones",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/stats/zones",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "stats",
+                "zones"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Stats Reviews",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/stats/reviews",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "stats",
+                "reviews"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Stats Payments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/stats/payments",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "stats",
+                "payments"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Stats Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/stats/notifications",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "stats",
+                "notifications"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Stats Favorites",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin-api/stats/favorites",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin-api",
+                "stats",
+                "favorites"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

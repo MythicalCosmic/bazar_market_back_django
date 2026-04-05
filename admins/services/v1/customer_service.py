@@ -19,7 +19,12 @@ class CustomerService:
         return self.user_repository.paginate(qs, page, per_page)
 
     def get_by_id(self, customer_id: int) -> User | None:
-        return self._customers_qs().filter(pk=customer_id).first()
+        return (
+            self._customers_qs()
+            .prefetch_related("addresses", "orders", "favorites__product", "reviews__order")
+            .filter(pk=customer_id)
+            .first()
+        )
 
     def update_customer(self, customer_id: int, dto: UpdateCustomerDTO) -> dict:
         customer = self._customers_qs().filter(pk=customer_id).first()

@@ -8,6 +8,7 @@ from admins.services.v1.user_service import UserService
 from base.container import container
 from base.permissions import require_permission, P
 from base.responses import success, error, created, not_found
+import telescope
 
 
 def _serialize_user(u) -> dict:
@@ -41,6 +42,7 @@ def list_users_view(request):
         order_by=request.GET.get("order_by", "-created_at"),
         page=int(request.GET.get("page", 1)),
         per_page=int(request.GET.get("per_page", 20)),
+        is_deleted=request.GET.get("is_deleted", False),
     )
     result["items"] = [_serialize_user(u) for u in result["items"]]
     return success(data=result)

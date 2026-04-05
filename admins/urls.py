@@ -48,6 +48,35 @@ from admins.views.v1.delivery_zone_views import (
     delete_zone_view, reorder_zones_view, activate_zone_view, deactivate_zone_view,
     zone_stats_view,
 )
+from admins.views.v1.review_views import (
+    list_reviews_view, get_review_view, approve_review_view, reject_review_view,
+    reply_review_view, delete_review_view, bulk_approve_reviews_view,
+    bulk_reject_reviews_view, review_stats_view,
+)
+from admins.views.v1.payment_views import (
+    list_payments_view, get_payment_view, order_payments_view,
+    update_payment_status_view as update_payment_view,
+    refund_payment_view, payment_stats_view,
+)
+from admins.views.v1.notification_views import (
+    list_notifications_view, get_notification_view,
+    send_notification_view, send_bulk_notification_view,
+    delete_notification_view, delete_user_notifications_view,
+    notification_stats_view,
+)
+from admins.views.v1.role_views import (
+    list_permissions_view, list_permission_groups_view,
+    get_role_permissions_view, set_role_permissions_view, reset_role_permissions_view,
+    get_user_permissions_view, grant_user_permission_view, deny_user_permission_view,
+    remove_user_permission_view, clear_user_permissions_view,
+    sync_permissions_view,
+)
+from admins.views.v1.setting_views import (
+    list_settings_view, get_setting_view, set_setting_view, delete_setting_view,
+)
+from admins.views.v1.favorite_views import (
+    list_favorites_view, most_favorited_view, favorite_stats_view,
+)
 
 app_name = "admins"
 
@@ -157,6 +186,55 @@ urlpatterns = [
     path('zone/<int:zone_id>/activate', activate_zone_view, name="zone-activate"),
     path('zone/<int:zone_id>/deactivate', deactivate_zone_view, name="zone-deactivate"),
 
+    # Reviews
+    path('reviews', list_reviews_view, name="reviews"),
+    path('reviews/bulk-approve', bulk_approve_reviews_view, name="reviews-bulk-approve"),
+    path('reviews/bulk-reject', bulk_reject_reviews_view, name="reviews-bulk-reject"),
+    path('review/<int:review_id>', get_review_view, name="review"),
+    path('review/<int:review_id>/approve', approve_review_view, name="review-approve"),
+    path('review/<int:review_id>/reject', reject_review_view, name="review-reject"),
+    path('review/<int:review_id>/reply', reply_review_view, name="review-reply"),
+    path('review/<int:review_id>/delete', delete_review_view, name="review-delete"),
+
+    # Payments
+    path('payments', list_payments_view, name="payments"),
+    path('payment/<int:payment_id>', get_payment_view, name="payment"),
+    path('payment/<int:payment_id>/status', update_payment_view, name="payment-status"),
+    path('payment/<int:payment_id>/refund', refund_payment_view, name="payment-refund"),
+    path('payments/order/<int:order_id>', order_payments_view, name="payments-by-order"),
+
+    # Notifications
+    path('notifications', list_notifications_view, name="notifications"),
+    path('notifications/send', send_bulk_notification_view, name="notifications-send-bulk"),
+    path('notification/<int:notification_id>', get_notification_view, name="notification"),
+    path('notification/<int:notification_id>/delete', delete_notification_view, name="notification-delete"),
+    path('notification/user/<int:user_id>/send', send_notification_view, name="notification-send"),
+    path('notification/user/<int:user_id>/delete', delete_user_notifications_view, name="notification-user-delete"),
+
+    # Roles & Permissions
+    path('permissions', list_permissions_view, name="permissions"),
+    path('permissions/groups', list_permission_groups_view, name="permission-groups"),
+    path('permissions/sync', sync_permissions_view, name="permissions-sync"),
+    path('role/<str:role>/permissions', get_role_permissions_view, name="role-permissions"),
+    path('role/<str:role>/permissions/set', set_role_permissions_view, name="role-permissions-set"),
+    path('role/<str:role>/permissions/reset', reset_role_permissions_view, name="role-permissions-reset"),
+    path('user/<int:user_id>/permissions', get_user_permissions_view, name="user-permissions"),
+    path('user/<int:user_id>/permissions/grant', grant_user_permission_view, name="user-permission-grant"),
+    path('user/<int:user_id>/permissions/deny', deny_user_permission_view, name="user-permission-deny"),
+    path('user/<int:user_id>/permissions/remove', remove_user_permission_view, name="user-permission-remove"),
+    path('user/<int:user_id>/permissions/clear', clear_user_permissions_view, name="user-permissions-clear"),
+
+    # Settings
+    path('settings', list_settings_view, name="settings"),
+    path('settings/set', set_setting_view, name="settings-set"),
+    path('setting/<str:key>', get_setting_view, name="setting"),
+    path('setting/<str:key>/delete', delete_setting_view, name="setting-delete"),
+
+    # Favorites
+    path('favorites', list_favorites_view, name="favorites"),
+    path('favorites/most', most_favorited_view, name="favorites-most"),
+
+    # Stats
     path('stats/overview', overview_view, name="stats-overview"),
     path('stats/staff', staff_stats_view, name="stats-staff"),
     path('stats/customers', customer_stats_view, name="stats-customers"),
@@ -167,4 +245,8 @@ urlpatterns = [
     path('stats/coupons', coupon_stats_view, name="stats-coupons"),
     path('stats/discounts', discount_stats_view, name="stats-discounts"),
     path('stats/zones', zone_stats_view, name="stats-zones"),
+    path('stats/reviews', review_stats_view, name="stats-reviews"),
+    path('stats/payments', payment_stats_view, name="stats-payments"),
+    path('stats/notifications', notification_stats_view, name="stats-notifications"),
+    path('stats/favorites', favorite_stats_view, name="stats-favorites"),
 ]

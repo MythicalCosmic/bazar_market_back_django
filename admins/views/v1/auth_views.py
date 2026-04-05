@@ -6,11 +6,12 @@ from base.container import container
 from base.responses import success, error
 from admins.dto.auth import LoginDTO, SessionDTO
 from admins.services.v1.auth_service import AuthService
-import telescope
+from base.ratelimit import ratelimit
 
 
 @csrf_exempt
 @require_POST
+@ratelimit(5, per=60)
 def login_view(request):
     try:
         data = json.loads(request.body)
@@ -19,6 +20,7 @@ def login_view(request):
 
     username = data.get("username")
     password = data.get("password")
+
     if not username or not password:
         return error("Username and password are required", status=422)
 
@@ -52,22 +54,22 @@ def logout_all_view(request):
     auth_header = request.META.get("HTTP_AUTHORIZATION", "")
     if not auth_header.startswith("Bearer "):
         return error("Authorization header required", status=401)
-    
+
     session_token = auth_header[7:]
     auth_service = container.resolve(AuthService)
     result = auth_service.logout_all(session_token)
-    return success(data=result, message="Loggout successful for all devices")
+    return success(data=result, message="Logout successful for all devices")
 
 
 @csrf_exempt
 @require_GET
+@ratelimit(30, per=60)
 def me_view(request):
     auth_header = request.META.get("HTTP_AUTHORIZATION", "")
     if not auth_header.startswith("Bearer "):
         return error("Authorization header required", status=401)
-    
+
     session_token = auth_header[7:]
-    telescope.dump(auth_header, label='warning')
     auth_service = container.resolve(AuthService)
     result = auth_service.me(session_token)
-    return success(data=result, message="Profile retrival successful")
+    return success(data=result, message="Profile retrieval successful")
