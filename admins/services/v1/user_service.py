@@ -2,6 +2,7 @@ from base.interfaces.user import IUserRepository
 from base.interfaces.session import ISessionRepository
 from base.exceptions import NotFoundError, ValidationError
 from admins.dto.user import CreateUserDTO, UpdateUserDTO
+from django.db import transaction
 from base.models import User
 
 STAFF_ROLES = {User.Role.ADMIN, User.Role.MANAGER, User.Role.COURIER}
@@ -15,8 +16,11 @@ class UserService:
     def _staff_qs(self):
         return self.user_repository.get_all().filter(role__in=STAFF_ROLES)
 
-    def get_all(self, query=None, role=None, is_active=None, order_by="-created_at", page=1, per_page=20):
-        qs = self._staff_qs()
+    def get_all(self, query=None, role=None, is_active=None, order_by="-created_at", page=1, per_page=20, is_deleted=False):
+        if is_deleted:
+            qs = self.user_repository.get_only_deleted().filter(role__in=STAFF_ROLES)
+        else:
+            qs = self._staff_qs()
         qs = self.user_repository.search(qs, query, ["first_name", "last_name", "username", "phone"])
         qs = self.user_repository.apply_filters(qs, {"role": role, "is_active": is_active})
         qs = self.user_repository.apply_ordering(qs, order_by, {"created_at", "first_name", "last_name", "role"})
@@ -34,6 +38,7 @@ class UserService:
     def get_by_phone(self, phone: str) -> User | None:
         return self.user_repository.get_by_phone(phone)
 
+    @transaction.atomic
     def create_user(self, dto: CreateUserDTO) -> dict:
         if dto.role not in STAFF_ROLES:
             raise ValidationError(f"Role must be one of: {', '.join(STAFF_ROLES)}")
@@ -74,6 +79,7 @@ class UserService:
             self.user_repository.update(user, **data)
         if raw_password:
             user.set_password(raw_password)
+
 
         return {"id": user.id, "username": user.username, "first_name": user.first_name, "last_name": user.last_name}
 

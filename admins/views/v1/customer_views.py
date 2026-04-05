@@ -25,6 +25,47 @@ def _serialize_customer(c) -> dict:
     }
 
 
+def _serialize_customer_detail(c) -> dict:
+    data = _serialize_customer(c)
+    data["addresses"] = [
+        {
+            "id": a.id,
+            "label": a.label,
+            "address_text": a.address_text,
+            "is_default": a.is_default,
+        }
+        for a in c.addresses.all()
+    ]
+    data["orders"] = [
+        {
+            "id": o.id,
+            "order_number": o.order_number,
+            "status": o.status,
+            "total": str(o.total),
+            "created_at": o.created_at.isoformat(),
+        }
+        for o in c.orders.all()[:20]
+    ]
+    data["favorites"] = [
+        {
+            "id": f.id,
+            "product_id": f.product_id,
+            "product_name": f.product.name_uz if f.product else None,
+        }
+        for f in c.favorites.all()
+    ]
+    data["reviews"] = [
+        {
+            "id": r.id,
+            "order_number": r.order.order_number if r.order else None,
+            "rating": r.rating,
+            "comment": r.comment,
+        }
+        for r in c.reviews.all()
+    ]
+    return data
+
+
 @csrf_exempt
 @require_GET
 @require_permission(P.VIEW_USERS)
@@ -51,7 +92,7 @@ def get_customer_view(request, customer_id):
     customer = svc.get_by_id(customer_id)
     if not customer:
         return not_found("Customer not found")
-    return success(data=_serialize_customer(customer))
+    return success(data=_serialize_customer_detail(customer))
 
 
 @csrf_exempt
