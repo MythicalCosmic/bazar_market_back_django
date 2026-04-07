@@ -219,6 +219,22 @@ class Product(TimestampMixin, SoftDeleteMixin):
     description_uz = models.TextField(blank=True, default="")
     description_ru = models.TextField(blank=True, default="")
 
+    # Identification
+    sku = models.CharField(
+        max_length=50,
+        unique=True,
+        null=True,
+        blank=True,
+        help_text='Stock keeping unit, e.g. "FRU-APL-001"',
+    )
+    barcode = models.CharField(
+        max_length=50,
+        unique=True,
+        null=True,
+        blank=True,
+        help_text="EAN-13, UPC, or internal barcode",
+    )
+
     # Pricing & units
     unit = models.CharField(max_length=20, choices=Unit.choices)
     price = models.DecimalField(
@@ -226,6 +242,14 @@ class Product(TimestampMixin, SoftDeleteMixin):
         decimal_places=2,
         validators=[MinValueValidator(0)],
         help_text="Price per 1 unit",
+    )
+    cost_price = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        help_text="Purchase/cost price for margin tracking",
     )
     step = models.DecimalField(
         max_digits=8,
@@ -256,6 +280,13 @@ class Product(TimestampMixin, SoftDeleteMixin):
         blank=True,
         help_text="null = unlimited stock",
     )
+    low_stock_threshold = models.DecimalField(
+        max_digits=10,
+        decimal_places=3,
+        null=True,
+        blank=True,
+        help_text="Alert when stock_qty falls below this",
+    )
 
     sort_order = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True)
@@ -272,7 +303,21 @@ class Product(TimestampMixin, SoftDeleteMixin):
             models.Index(fields=["uuid"], name="idx_products_uuid"),
             models.Index(fields=["price"], name="idx_products_price"),
             models.Index(fields=["is_featured", "sort_order"], name="idx_products_featured_sort"),
+            models.Index(fields=["sku"], name="idx_products_sku"),
+            models.Index(fields=["barcode"], name="idx_products_barcode"),
         ]
+
+    @property
+    def is_low_stock(self) -> bool:
+        if self.stock_qty is None or self.low_stock_threshold is None:
+            return False
+        return self.stock_qty <= self.low_stock_threshold
+
+    @property
+    def margin(self):
+        if self.cost_price and self.cost_price > 0:
+            return round((self.price - self.cost_price) / self.price * 100, 1)
+        return None
 
     def __str__(self) -> str:
         return self.name_uz

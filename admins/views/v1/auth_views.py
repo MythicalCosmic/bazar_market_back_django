@@ -7,6 +7,7 @@ from base.responses import success, error
 from admins.dto.auth import LoginDTO, SessionDTO
 from admins.services.v1.auth_service import AuthService
 from base.ratelimit import ratelimit
+from base.printing.printing_service import printTextOnCall
 
 
 @csrf_exempt
@@ -33,6 +34,7 @@ def login_view(request):
             device=data.get("device", ""),
         ),
     )
+    printTextOnCall(result)
     return success(data=result, message="Login successful")
 
 
