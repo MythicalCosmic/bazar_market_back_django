@@ -5,7 +5,10 @@ import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 image_path = os.path.join(BASE_DIR, "..", "base_images", "image.png")
 
-printer = File("/dev/usb/lp0")
+try:
+    printer = File("/dev/usb/lp0")
+except Exception as e:
+    print('Printer not found')
 
 
 def printImage(path):

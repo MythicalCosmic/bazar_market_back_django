@@ -48,6 +48,9 @@ class CustomerService:
 
     def deactivate(self, customer_id: int) -> dict:
         customer = self._customers_qs().filter(pk=customer_id).first()
+        customer_deactivate = self._customers_qs().filter(pk=customer_id, is_active=False)
+        if customer_deactivate:
+            raise NotFoundError("This customer is already deactive")
         if not customer:
             raise NotFoundError("Customer not found")
 
