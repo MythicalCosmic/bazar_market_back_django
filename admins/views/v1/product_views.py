@@ -44,15 +44,16 @@ def _serialize_product(p) -> dict:
         "category_name": p.category.name_uz if hasattr(p, "category") and p.category else None,
         "name_uz": p.name_uz,
         "name_ru": p.name_ru,
-        "description_uz": p.description_uz,
-        "description_ru": p.description_ru,
+        "sku": p.sku,
+        "barcode": p.barcode,
         "unit": p.unit,
         "price": str(p.price),
-        "step": str(p.step),
-        "min_qty": str(p.min_qty),
-        "max_qty": str(p.max_qty) if p.max_qty is not None else None,
+        "cost_price": str(p.cost_price) if p.cost_price is not None else None,
+        "margin": p.margin,
         "in_stock": p.in_stock,
         "stock_qty": str(p.stock_qty) if p.stock_qty is not None else None,
+        "low_stock_threshold": str(p.low_stock_threshold) if p.low_stock_threshold is not None else None,
+        "is_low_stock": p.is_low_stock,
         "sort_order": p.sort_order,
         "is_active": p.is_active,
         "is_featured": p.is_featured,
@@ -65,6 +66,11 @@ def _serialize_product(p) -> dict:
 
 def _serialize_product_detail(p) -> dict:
     data = _serialize_product(p)
+    data["description_uz"] = p.description_uz
+    data["description_ru"] = p.description_ru
+    data["step"] = str(p.step)
+    data["min_qty"] = str(p.min_qty)
+    data["max_qty"] = str(p.max_qty) if p.max_qty is not None else None
     data["images"] = [
         {
             "id": img.id,
@@ -103,6 +109,9 @@ def list_products_view(request):
         min_price=_parse_decimal(request.GET.get("min_price")),
         max_price=_parse_decimal(request.GET.get("max_price")),
         has_discount=_parse_bool(request.GET.get("has_discount")),
+        stock_status=request.GET.get("stock_status"),
+        has_sku=_parse_bool(request.GET.get("has_sku")),
+        has_barcode=_parse_bool(request.GET.get("has_barcode")),
         order_by=request.GET.get("order_by", "-created_at"),
         page=int(request.GET.get("page", 1)),
         per_page=int(request.GET.get("per_page", 20)),
@@ -144,11 +153,15 @@ def create_product_view(request):
         name_ru=data.get("name_ru", ""),
         description_uz=data.get("description_uz", ""),
         description_ru=data.get("description_ru", ""),
+        sku=data.get("sku"),
+        barcode=data.get("barcode"),
+        cost_price=str(data["cost_price"]) if data.get("cost_price") is not None else None,
         step=str(data.get("step", "1")),
         min_qty=str(data.get("min_qty", "1")),
         max_qty=str(data["max_qty"]) if data.get("max_qty") is not None else None,
         in_stock=data.get("in_stock", True),
         stock_qty=str(data["stock_qty"]) if data.get("stock_qty") is not None else None,
+        low_stock_threshold=str(data["low_stock_threshold"]) if data.get("low_stock_threshold") is not None else None,
         sort_order=data.get("sort_order", 0),
         is_active=data.get("is_active", True),
         is_featured=data.get("is_featured", False),

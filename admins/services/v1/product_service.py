@@ -15,9 +15,9 @@ from base.models import Product, ProductImage, Discount, OrderItem
 
 VALID_UNITS = {c[0] for c in Product.Unit.choices}
 
-SEARCH_FIELDS = ["name_uz", "name_ru", "description_uz", "description_ru"]
+SEARCH_FIELDS = ["name_uz", "name_ru", "description_uz", "description_ru", "sku", "barcode"]
 
-ORDER_FIELDS = {"sort_order", "price", "name_uz", "created_at", "stock_qty", "is_featured"}
+ORDER_FIELDS = {"sort_order", "price", "name_uz", "created_at", "stock_qty", "is_featured", "sku", "cost_price"}
 
 
 class ProductService:
@@ -44,6 +44,9 @@ class ProductService:
         min_price=None,
         max_price=None,
         has_discount=None,
+        stock_status=None,
+        has_sku=None,
+        has_barcode=None,
         order_by="-created_at",
         page=1,
         per_page=20,
@@ -65,6 +68,26 @@ class ProductService:
             qs = qs.filter(price__gte=min_price)
         if max_price is not None:
             qs = qs.filter(price__lte=max_price)
+
+        # stock_status: "out_of_stock", "low_stock", "in_stock", "unlimited"
+        if stock_status == "out_of_stock":
+            qs = qs.filter(Q(in_stock=False) | Q(stock_qty__isnull=False, stock_qty__lte=0))
+        elif stock_status == "low_stock":
+            qs = qs.filter(
+                stock_qty__isnull=False,
+                low_stock_threshold__isnull=False,
+                stock_qty__lte=F("low_stock_threshold"),
+                stock_qty__gt=0,
+            )
+        elif stock_status == "in_stock":
+            qs = qs.filter(in_stock=True, stock_qty__isnull=False, stock_qty__gt=0)
+        elif stock_status == "unlimited":
+            qs = qs.filter(stock_qty__isnull=True)
+
+        if has_sku is not None:
+            qs = qs.filter(sku__isnull=not has_sku) if not has_sku else qs.exclude(sku__isnull=True).exclude(sku="")
+        if has_barcode is not None:
+            qs = qs.filter(barcode__isnull=not has_barcode) if not has_barcode else qs.exclude(barcode__isnull=True).exclude(barcode="")
 
         if has_discount is not None:
             now = timezone.now()
@@ -135,12 +158,19 @@ class ProductService:
         except (InvalidOperation, ValueError):
             raise ValidationError("Invalid price")
 
+        if dto.sku and self.product_repo.exists(sku=dto.sku):
+            raise ValidationError("SKU already exists")
+        if dto.barcode and self.product_repo.exists(barcode=dto.barcode):
+            raise ValidationError("Barcode already exists")
+
         kwargs = {
             "category": category,
             "name_uz": dto.name_uz,
             "name_ru": dto.name_ru,
             "description_uz": dto.description_uz,
             "description_ru": dto.description_ru,
+            "sku": dto.sku or None,
+            "barcode": dto.barcode or None,
             "unit": dto.unit,
             "price": price,
             "step": Decimal(dto.step),
@@ -150,10 +180,14 @@ class ProductService:
             "is_active": dto.is_active,
             "is_featured": dto.is_featured,
         }
+        if dto.cost_price is not None:
+            kwargs["cost_price"] = Decimal(dto.cost_price)
         if dto.max_qty is not None:
             kwargs["max_qty"] = Decimal(dto.max_qty)
         if dto.stock_qty is not None:
             kwargs["stock_qty"] = Decimal(dto.stock_qty)
+        if dto.low_stock_threshold is not None:
+            kwargs["low_stock_threshold"] = Decimal(dto.low_stock_threshold)
 
         product = self.product_repo.create(**kwargs)
 
@@ -186,7 +220,14 @@ class ProductService:
         if "unit" in data and data["unit"] not in VALID_UNITS:
             raise ValidationError(f"Invalid unit. Must be one of: {', '.join(VALID_UNITS)}")
 
-        for decimal_field in ("price", "step", "min_qty", "max_qty", "stock_qty"):
+        if "sku" in data and data["sku"] and data["sku"] != product.sku:
+            if self.product_repo.exists(sku=data["sku"]):
+                raise ValidationError("SKU already exists")
+        if "barcode" in data and data["barcode"] and data["barcode"] != product.barcode:
+            if self.product_repo.exists(barcode=data["barcode"]):
+                raise ValidationError("Barcode already exists")
+
+        for decimal_field in ("price", "cost_price", "step", "min_qty", "max_qty", "stock_qty", "low_stock_threshold"):
             if decimal_field in data and data[decimal_field] is not None:
                 try:
                     data[decimal_field] = Decimal(str(data[decimal_field]))
@@ -426,11 +467,22 @@ class ProductService:
 
         low_stock = list(
             qs.filter(
-                stock_qty__isnull=False, stock_qty__lte=10, is_active=True
+                stock_qty__isnull=False,
+                low_stock_threshold__isnull=False,
+                stock_qty__lte=F("low_stock_threshold"),
+                stock_qty__gt=0,
+                is_active=True,
             )
             .order_by("stock_qty")
-            .values("id", "name_uz", "stock_qty", "category__name_uz")[:10]
+            .values("id", "name_uz", "sku", "stock_qty", "low_stock_threshold", "category__name_uz")[:20]
         )
+        zero_stock = qs.filter(
+            Q(in_stock=False) | Q(stock_qty__isnull=False, stock_qty__lte=0),
+            is_active=True,
+        ).count()
+        unlimited_stock = qs.filter(stock_qty__isnull=True, is_active=True).count()
+        without_sku = qs.filter(Q(sku__isnull=True) | Q(sku=""), is_active=True).count()
+        without_barcode = qs.filter(Q(barcode__isnull=True) | Q(barcode=""), is_active=True).count()
 
         order_filter = Q(order_items__order__status__in=["completed", "delivered"])
         if date_from:
@@ -468,8 +520,12 @@ class ProductService:
             "inactive": total - active,
             "in_stock": in_stock,
             "out_of_stock": out_of_stock,
+            "zero_stock": zero_stock,
+            "unlimited_stock": unlimited_stock,
             "featured": featured,
             "never_ordered": never_ordered,
+            "without_sku": without_sku,
+            "without_barcode": without_barcode,
             "by_category": [
                 {"category_id": s["category_id"], "category": s["category__name_uz"], "count": s["count"]}
                 for s in by_category
@@ -484,7 +540,9 @@ class ProductService:
                 {
                     "id": s["id"],
                     "name": s["name_uz"],
+                    "sku": s["sku"],
                     "stock_qty": str(s["stock_qty"]),
+                    "threshold": str(s["low_stock_threshold"]),
                     "category": s["category__name_uz"],
                 }
                 for s in low_stock

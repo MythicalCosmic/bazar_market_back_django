@@ -11,7 +11,10 @@ class CategoryService:
     def __init__(self, category_repository: ICategoryRepository):
         self.category_repository = category_repository
 
-    def get_all(self, query=None, is_active=None, parent_id=None, order_by="sort_order", page=1, per_page=20):
+    def get_all(self, query=None, is_active=None, parent_id=None, order_by="sort_order", page=1, per_page=20, is_deleted=None):
+        if is_deleted:
+            qs = self.category_repository.get_only_deleted()
+            return self.category_repository.paginate(qs, page, per_page)
         qs = self.category_repository.get_all()
         qs = self.category_repository.search(qs, query, ["name_uz", "name_ru"])
         filters = {"is_active": is_active}

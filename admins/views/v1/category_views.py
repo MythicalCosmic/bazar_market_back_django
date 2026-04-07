@@ -50,6 +50,7 @@ def list_categories_view(request):
         order_by=request.GET.get("order_by", "sort_order"),
         page=int(request.GET.get("page", 1)),
         per_page=int(request.GET.get("per_page", 20)),
+        is_deleted=bool(request.GET.get("is_deleted", None))
     )
     result["items"] = [_serialize_category(c) for c in result["items"]]
     return success(data=result)
