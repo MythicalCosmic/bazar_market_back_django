@@ -8,7 +8,7 @@ from base.interfaces.coupon import ICouponRepository, ICouponUsageRepository
 from base.exceptions import NotFoundError, ValidationError
 from admins.dto.coupon import CreateCouponDTO, UpdateCouponDTO
 from base.models import Coupon
-
+from django.utils.dateparse import parse_datetime
 
 VALID_TYPES = {c[0] for c in Coupon.Type.choices}
 
@@ -17,8 +17,19 @@ def _parse_dt(val):
     if val is None:
         return None
     if isinstance(val, datetime):
-        return val
-    return datetime.fromisoformat(val)
+        dt = val
+    elif isinstance(val, str):
+        dt = parse_datetime(val)
+        if dt is None:
+            raise ValueError("Invalid datetime format")
+
+    else:
+        raise ValidationError("Unsupportred type for datetime")
+    
+    #make timezone aware if naiva
+    if dt.tzinfo is None:
+        dt = timezone.make_aware(dt)
+    return dt
 
 
 class CouponService:
@@ -74,7 +85,11 @@ class CouponService:
                 raise ValidationError("Value must be positive")
         except (InvalidOperation, ValueError):
             raise ValidationError("Invalid value")
-
+        current_time = timezone.now()
+        expires_at = _parse_dt(dto.expires_at)
+        if expires_at and expires_at < current_time:
+            raise ValidationError("Expires at cannot be in the past")
+        
         kwargs = {
             "code": dto.code.upper(),
             "type": dto.type,
