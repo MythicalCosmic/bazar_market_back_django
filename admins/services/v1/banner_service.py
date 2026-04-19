@@ -3,6 +3,7 @@ from datetime import datetime
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
 from base.interfaces.banner import IBannerRepository
 from base.exceptions import NotFoundError, ValidationError
@@ -11,11 +12,6 @@ from base.models import Banner
 
 
 VALID_LINK_TYPES = {c[0] for c in Banner.LinkType.choices}
-
-
-from django.utils.dateparse import parse_datetime
-from django.utils import timezone
-from datetime import datetime
 
 def _parse_dt(val):
     if val is None:
@@ -66,23 +62,27 @@ class BannerService:
         if dto.link_type not in VALID_LINK_TYPES:
             raise ValidationError(f"Invalid link_type. Must be one of: {', '.join(VALID_LINK_TYPES)}")
         
-        current_time = timezone.now()
+        starts_at = _parse_dt(dto.starts_at)
         expires_at = _parse_dt(dto.expires_at)
-        if expires_at < current_time:
-            raise ValidationError("Expires at cannot be in the past")
-        
+
+        now = timezone.now()
+        if expires_at and expires_at < now:
+            raise ValidationError("expires_at cannot be in the past")
+        if starts_at and expires_at and starts_at >= expires_at:
+            raise ValidationError("starts_at must be before expires_at")
+
         banner = self.banner_repo.create(
             title=dto.title,
             image=dto.image,
             link_type=dto.link_type,
             link_value=dto.link_value,
             sort_order=dto.sort_order,
-            starts_at=_parse_dt(dto.starts_at),
+            starts_at=starts_at,
             expires_at=expires_at,
             is_active=dto.is_active,
         )
 
-        return {"id": banner.id, "title": banner.title, "current_time": current_time}
+        return {"id": banner.id, "title": banner.title}
 
     def update_banner(self, banner_id: int, dto: UpdateBannerDTO) -> dict:
         banner = self.banner_repo.get_by_id(banner_id)
