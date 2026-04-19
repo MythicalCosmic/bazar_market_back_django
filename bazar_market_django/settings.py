@@ -28,6 +28,10 @@ MIDDLEWARE = [
 
 TELESCOPE_ENABLED = False
 
+# Thermal receipt printer
+PRINTER_ENABLED = False          # set True when printer is connected
+PRINTER_PATH = "/dev/usb/lp0"
+
 if TELESCOPE_ENABLED:
     MIDDLEWARE.insert(0, "telescope.middleware.TelescopeMiddleware")
 

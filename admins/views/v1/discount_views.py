@@ -58,6 +58,12 @@ def _parse_int_list(data, key):
 @require_GET
 @require_permission(P.MANAGE_DISCOUNTS)
 def list_discounts_view(request):
+    try:
+        page = int(request.GET.get("page", 1))
+        per_page = int(request.GET.get("per_page", 20))
+    except (ValueError, TypeError):
+        return error("page and per_page must be integers", status=422)
+
     svc = container.resolve(DiscountService)
     result = svc.get_all(
         query=request.GET.get("q"),
@@ -65,8 +71,8 @@ def list_discounts_view(request):
         type=request.GET.get("type"),
         current_only=_parse_bool(request.GET.get("current_only")) or False,
         order_by=request.GET.get("order_by", "-created_at"),
-        page=int(request.GET.get("page", 1)),
-        per_page=int(request.GET.get("per_page", 20)),
+        page=page,
+        per_page=per_page,
     )
     result["items"] = [_serialize_discount(d) for d in result["items"]]
     return success(data=result)

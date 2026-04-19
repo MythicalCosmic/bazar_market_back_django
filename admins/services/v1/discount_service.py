@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 
-from django.db.models import Count, Sum, Q
+from django.db.models import Count, Q
 from django.utils import timezone
 
 from base.interfaces.discount import IDiscountRepository
@@ -25,10 +25,10 @@ def _parse_dt(val):
             raise ValueError("Invalid datetime format")
     else:
         raise ValueError("Unsupported type for datetime")
-    
+
     if dt.tzinfo is None:
         dt = timezone.make_aware(dt)
-    return datetime.fromisoformat(val)
+    return dt
 
 
 class DiscountService:
@@ -82,22 +82,37 @@ class DiscountService:
 
         if dto.type == "percent" and value > 100:
             raise ValidationError("Percent discount cannot exceed 100")
-        current_time = timezone.now()
+
+        if dto.max_discount is not None:
+            try:
+                max_discount = Decimal(dto.max_discount)
+                if max_discount <= 0:
+                    raise ValidationError("max_discount must be positive")
+            except (InvalidOperation, ValueError):
+                raise ValidationError("Invalid max_discount")
+        else:
+            max_discount = None
+
+        starts_at = _parse_dt(dto.starts_at)
         expires_at = _parse_dt(dto.expires_at)
-        if expires_at and expires_at < current_time:
-            raise ValidationError("Expiries at cannot be in the past")
-        
+
+        now = timezone.now()
+        if expires_at and expires_at < now:
+            raise ValidationError("expires_at cannot be in the past")
+        if starts_at and expires_at and starts_at >= expires_at:
+            raise ValidationError("starts_at must be before expires_at")
+
         kwargs = {
             "name_uz": dto.name_uz,
             "name_ru": dto.name_ru,
             "type": dto.type,
             "value": value,
-            "starts_at": _parse_dt(dto.starts_at),
-            "expires_at": _parse_dt(dto.expires_at),
+            "starts_at": starts_at,
+            "expires_at": expires_at,
             "is_active": dto.is_active,
         }
-        if dto.max_discount is not None:
-            kwargs["max_discount"] = Decimal(dto.max_discount)
+        if max_discount is not None:
+            kwargs["max_discount"] = max_discount
 
         discount = self.discount_repo.create(**kwargs)
 
@@ -122,15 +137,27 @@ class DiscountService:
             if decimal_field in data and data[decimal_field] is not None:
                 try:
                     data[decimal_field] = Decimal(str(data[decimal_field]))
+                    if data[decimal_field] <= 0:
+                        raise ValidationError(f"{decimal_field} must be positive")
                 except (InvalidOperation, ValueError):
                     raise ValidationError(f"Invalid {decimal_field}")
 
-        if "value" in data and data.get("type", discount.type) == "percent" and data["value"] > 100:
+        effective_type = data.get("type", discount.type)
+        effective_value = data.get("value", discount.value)
+        if effective_type == "percent" and effective_value > 100:
             raise ValidationError("Percent discount cannot exceed 100")
 
         for dt_field in ("starts_at", "expires_at"):
             if dt_field in data:
                 data[dt_field] = _parse_dt(data[dt_field])
+
+        effective_starts = data.get("starts_at", discount.starts_at)
+        effective_expires = data.get("expires_at", discount.expires_at)
+
+        if effective_expires and effective_expires < timezone.now():
+            raise ValidationError("expires_at cannot be in the past")
+        if effective_starts and effective_expires and effective_starts >= effective_expires:
+            raise ValidationError("starts_at must be before expires_at")
 
         if data:
             self.discount_repo.update(discount, **data)
