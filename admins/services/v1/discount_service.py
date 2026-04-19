@@ -8,6 +8,7 @@ from base.interfaces.discount import IDiscountRepository
 from base.exceptions import NotFoundError, ValidationError
 from admins.dto.discount import CreateDiscountDTO, UpdateDiscountDTO
 from base.models import Discount
+from django.utils.dateparse import parse_datetime
 
 
 VALID_TYPES = {c[0] for c in Discount.Type.choices}
@@ -17,7 +18,16 @@ def _parse_dt(val):
     if val is None:
         return None
     if isinstance(val, datetime):
-        return val
+        dt = val
+    elif isinstance(val, str):
+        dt = parse_datetime(val)
+        if dt is None:
+            raise ValueError("Invalid datetime format")
+    else:
+        raise ValueError("Unsupported type for datetime")
+    
+    if dt.tzinfo is None:
+        dt = timezone.make_aware(dt)
     return datetime.fromisoformat(val)
 
 
@@ -72,7 +82,11 @@ class DiscountService:
 
         if dto.type == "percent" and value > 100:
             raise ValidationError("Percent discount cannot exceed 100")
-
+        current_time = timezone.now()
+        expires_at = _parse_dt(dto.expires_at)
+        if expires_at and expires_at < current_time:
+            raise ValidationError("Expiries at cannot be in the past")
+        
         kwargs = {
             "name_uz": dto.name_uz,
             "name_ru": dto.name_ru,
