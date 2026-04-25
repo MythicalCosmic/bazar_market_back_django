@@ -18,5 +18,6 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin-api/', include('admins.urls')),
+    path('api/', include('customer.urls')),
     path("telescope/", include("telescope.urls")),
 ]

@@ -28,6 +28,12 @@ MIDDLEWARE = [
 
 TELESCOPE_ENABLED = False
 
+# DevSMS (phone verification)
+DEVSMS_TOKEN = "840076bd686a31caf57c60e501bfd2ff44c86092d4452a0b5dac860ccf6e8295"
+DEVSMS_URL = "https://devsms.uz/api/send_sms.php"
+OTP_LENGTH = 6
+OTP_EXPIRY_SECONDS = 120  # 2 minutes
+
 # Thermal receipt printer
 PRINTER_ENABLED = False          # set True when printer is connected
 PRINTER_PATH = "/dev/usb/lp0"
