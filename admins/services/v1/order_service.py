@@ -142,6 +142,16 @@ class OrderService:
         if new_status == "cancelled" and old_status in STOCK_DEDUCTED_STATUSES:
             self._restore_stock(order_id)
 
+        # Grant referral reward on first delivered order
+        if new_status == "delivered":
+            try:
+                from customer.services.v1.referral_service import CustomerReferralService
+                from base.container import container
+                ref_svc = container.resolve(CustomerReferralService)
+                ref_svc.grant_reward_on_first_order(order.user_id)
+            except Exception:
+                pass  # Non-critical
+
         return {"order_id": order.id, "status": new_status, "previous_status": old_status}
 
     @transaction.atomic

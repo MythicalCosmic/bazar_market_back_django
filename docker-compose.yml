@@ -53,6 +53,19 @@ services:
       redis:
         condition: service_healthy
 
+  scheduler:
+    build: .
+    restart: always
+    entrypoint: ["sh", "-c"]
+    command: ["while true; do python manage.py cancel_expired_orders; sleep 300; done"]
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   nginx:
     image: nginx:alpine
     restart: always
