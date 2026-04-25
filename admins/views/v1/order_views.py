@@ -323,3 +323,30 @@ def order_stats_view(request):
     date_from = _parse_date(request.GET.get("date_from"))
     date_to = _parse_date(request.GET.get("date_to"))
     return success(data=svc.stats(date_from=date_from, date_to=date_to))
+
+
+@csrf_exempt
+@require_POST
+@require_permission(P.MANAGE_ORDERS)
+def accept_and_print_view(request, order_id):
+    svc = container.resolve(OrderService)
+    result = svc.update_status(
+        order_id, new_status="confirmed",
+        admin_user=request.user_obj, note="Accepted and printing",
+    )
+    from base.printing.print_queue import enqueue_print
+    enqueue_print(order_id)
+    result["printed"] = True
+    return success(data=result, message="Order confirmed and sent to printer")
+
+
+@csrf_exempt
+@require_POST
+@require_permission(P.MANAGE_ORDERS)
+def print_order_view(request, order_id):
+    from base.models import Order
+    if not Order.objects.filter(pk=order_id).exists():
+        return not_found("Order not found")
+    from base.printing.print_queue import enqueue_print
+    enqueue_print(order_id)
+    return success(message="Print job enqueued")

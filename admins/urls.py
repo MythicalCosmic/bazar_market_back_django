@@ -24,7 +24,7 @@ from admins.views.v1.order_views import (
     assign_courier_view, unassign_courier_view,
     update_payment_status_view, add_admin_note_view, cancel_order_view,
     bulk_update_status_view, get_min_order_view, set_min_order_view,
-    order_stats_view,
+    order_stats_view, accept_and_print_view, print_order_view,
 )
 from admins.views.v1.banner_views import (
     list_banners_view, get_banner_view, create_banner_view, update_banner_view,
@@ -144,6 +144,8 @@ urlpatterns = [
     path('order/<int:order_id>/payment-status', update_payment_status_view, name="order-payment-status"),
     path('order/<int:order_id>/note', add_admin_note_view, name="order-note"),
     path('order/<int:order_id>/cancel', cancel_order_view, name="order-cancel"),
+    path('order/<int:order_id>/accept-print', accept_and_print_view, name="order-accept-print"),
+    path('order/<int:order_id>/print', print_order_view, name="order-print"),
 
     path('banners', list_banners_view, name="banners"),
     path('banners/reorder', reorder_banners_view, name="banners-reorder"),

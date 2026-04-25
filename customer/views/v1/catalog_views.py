@@ -22,6 +22,10 @@ def _serialize_product(p) -> dict:
         data["category_name"] = p.category.name_uz
     if hasattr(p, "primary_image"):
         data["image"] = p.primary_image
+    if hasattr(p, "_discounted_price"):
+        data["discounted_price"] = str(p._discounted_price)
+    if hasattr(p, "total_sold") and p.total_sold:
+        data["total_sold"] = str(p.total_sold)
     return data
 
 
@@ -72,12 +76,15 @@ def _serialize_product_detail(p) -> dict:
 
 
 def _serialize_category(c) -> dict:
-    return {
+    data = {
         "id": c.id,
         "name_uz": c.name_uz,
         "name_ru": c.name_ru,
         "image": c.image,
     }
+    if hasattr(c, "product_count"):
+        data["product_count"] = c.product_count
+    return data
 
 
 @csrf_exempt
@@ -145,6 +152,21 @@ def featured_products_view(request):
 
     svc = container.resolve(CatalogService)
     result = svc.get_featured(page=page, per_page=per_page)
+    result["items"] = [_serialize_product(p) for p in result["items"]]
+    return success(data=result)
+
+
+@csrf_exempt
+@require_GET
+def popular_products_view(request):
+    try:
+        page = int(request.GET.get("page", 1))
+        per_page = int(request.GET.get("per_page", 20))
+    except (ValueError, TypeError):
+        return error("page and per_page must be integers", status=422)
+
+    svc = container.resolve(CatalogService)
+    result = svc.popular_products(page=page, per_page=per_page)
     result["items"] = [_serialize_product(p) for p in result["items"]]
     return success(data=result)
 

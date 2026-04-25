@@ -17,6 +17,7 @@ from customer.views.v1.catalog_views import (
     list_categories_view,
     category_tree_view,
     featured_products_view,
+    popular_products_view,
     search_products_view,
 )
 from customer.views.v1.cart_views import (
@@ -56,6 +57,11 @@ from customer.views.v1.notification_views import (
     mark_all_read_view,
     unread_count_view,
 )
+from customer.views.v1.referral_views import (
+    my_referral_view,
+    my_referrals_list_view,
+    apply_referral_view,
+)
 from customer.views.v1.coupon_views import validate_coupon_view
 from customer.views.v1.banner_views import list_banners_view
 from customer.views.v1.delivery_zone_views import check_delivery_view
@@ -77,6 +83,7 @@ urlpatterns = [
     # ── Catalog (public) ──
     path("products", list_products_view, name="products"),
     path("products/featured", featured_products_view, name="products-featured"),
+    path("products/popular", popular_products_view, name="products-popular"),
     path("products/search", search_products_view, name="products-search"),
     path("product/<int:product_id>", get_product_view, name="product-detail"),
     path("categories", list_categories_view, name="categories"),
@@ -118,6 +125,11 @@ urlpatterns = [
     path("notifications/read-all", mark_all_read_view, name="notifications-read-all"),
     path("notifications/unread-count", unread_count_view, name="notifications-unread-count"),
     path("notification/<int:notification_id>/read", mark_notification_read_view, name="notification-read"),
+
+    # ── Referrals ──
+    path("referral", my_referral_view, name="referral"),
+    path("referral/list", my_referrals_list_view, name="referral-list"),
+    path("referral/apply", apply_referral_view, name="referral-apply"),
 
     # ── Coupons ──
     path("coupon/validate", validate_coupon_view, name="coupon-validate"),
