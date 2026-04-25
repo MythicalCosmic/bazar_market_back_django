@@ -5,17 +5,20 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-RUN pip install --no-cache-dir \
-    "django>=6.0.3" \
-    "django-redis>=6.0.0" \
-    "psycopg[binary]>=3.3.3" \
-    gunicorn
+# System deps for psycopg, pillow, escpos
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq-dev gcc libusb-1.0-0 libjpeg62-turbo-dev zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+RUN python manage.py collectstatic --noinput 2>/dev/null || true
 RUN chmod +x entrypoint.sh
 
 EXPOSE 8000
 
 ENTRYPOINT ["./entrypoint.sh"]
-CMD ["gunicorn", "bazar_market_django.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "4"]
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "bazar_market_django.asgi:application"]
