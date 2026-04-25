@@ -39,3 +39,13 @@ def validation_error(errors, message="Validation failed"):
 
 def server_error(message="Internal server error"):
     return error(message=message, status=500)
+
+
+def parse_page(request):
+    """Safely parse page and per_page from GET params. Returns (page, per_page) or a JsonResponse error."""
+    try:
+        page = int(request.GET.get("page", 1))
+        per_page = int(request.GET.get("per_page", 20))
+    except (ValueError, TypeError):
+        return None
+    return page, per_page

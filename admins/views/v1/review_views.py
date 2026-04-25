@@ -57,14 +57,20 @@ def list_reviews_view(request):
     svc = container.resolve(ReviewService)
     user_raw = request.GET.get("user_id")
     rating_raw = request.GET.get("rating")
+    try:
+        page = int(request.GET.get("page", 1))
+        per_page = int(request.GET.get("per_page", 20))
+    except (ValueError, TypeError):
+        return error("page and per_page must be integers", status=422)
+
     result = svc.get_all(
         query=request.GET.get("q"),
         rating=int(rating_raw) if rating_raw else None,
         moderation_status=request.GET.get("moderation_status"),
         user_id=int(user_raw) if user_raw else None,
         order_by=request.GET.get("order_by", "-created_at"),
-        page=int(request.GET.get("page", 1)),
-        per_page=int(request.GET.get("per_page", 20)),
+        page=page,
+        per_page=per_page,
     )
     result["items"] = [_serialize_review(r) for r in result["items"]]
     return success(data=result)

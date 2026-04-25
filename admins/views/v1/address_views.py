@@ -4,7 +4,7 @@ from django.views.decorators.http import require_GET
 from admins.services.v1.address_service import AddressService
 from base.container import container
 from base.permissions import require_permission, P
-from base.responses import success, not_found
+from base.responses import success, error, not_found
 
 
 def _serialize_address(a) -> dict:
@@ -43,12 +43,18 @@ def list_addresses_view(request):
     is_active = {"true": True, "false": False}.get(is_active_raw.lower()) if is_active_raw else None
     user_raw = request.GET.get("user_id")
     user_id = int(user_raw) if user_raw else None
+    try:
+        page = int(request.GET.get("page", 1))
+        per_page = int(request.GET.get("per_page", 20))
+    except (ValueError, TypeError):
+        return error("page and per_page must be integers", status=422)
+
     result = svc.get_all(
         user_id=user_id,
         is_active=is_active,
         order_by=request.GET.get("order_by", "-created_at"),
-        page=int(request.GET.get("page", 1)),
-        per_page=int(request.GET.get("per_page", 20)),
+        page=page,
+        per_page=per_page,
     )
     result["items"] = [_serialize_address(a) for a in result["items"]]
     return success(data=result)

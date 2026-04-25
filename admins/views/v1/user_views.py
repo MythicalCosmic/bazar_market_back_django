@@ -35,13 +35,19 @@ def list_users_view(request):
     svc = container.resolve(UserService)
     is_active_raw = request.GET.get("is_active")
     is_active = {"true": True, "false": False}.get(is_active_raw.lower()) if is_active_raw else None
+    try:
+        page = int(request.GET.get("page", 1))
+        per_page = int(request.GET.get("per_page", 20))
+    except (ValueError, TypeError):
+        return error("page and per_page must be integers", status=422)
+
     result = svc.get_all(
         query=request.GET.get("q"),
         role=request.GET.get("role"),
         is_active=is_active,
         order_by=request.GET.get("order_by", "-created_at"),
-        page=int(request.GET.get("page", 1)),
-        per_page=int(request.GET.get("per_page", 20)),
+        page=page,
+        per_page=per_page,
         is_deleted=request.GET.get("is_deleted", False),
     )
     result["items"] = [_serialize_user(u) for u in result["items"]]

@@ -44,12 +44,14 @@ class CustomerDeliveryZoneService:
         if isinstance(polygon, dict):
             geo_type = polygon.get("type", "")
             if geo_type == "Polygon":
-                return polygon.get("coordinates", [[]])[0]
+                coords = polygon.get("coordinates", [])
+                return coords[0] if coords else None
             elif geo_type == "Feature":
                 geom = polygon.get("geometry", {})
-                return geom.get("coordinates", [[]])[0]
+                coords = geom.get("coordinates", [])
+                return coords[0] if coords else None
         elif isinstance(polygon, list):
-            return polygon
+            return polygon if polygon else None
         return None
 
     @staticmethod

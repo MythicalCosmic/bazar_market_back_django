@@ -99,6 +99,12 @@ def _serialize_product_detail(p) -> dict:
 @require_permission(P.VIEW_PRODUCTS)
 def list_products_view(request):
     svc = container.resolve(ProductService)
+    try:
+        page = int(request.GET.get("page", 1))
+        per_page = int(request.GET.get("per_page", 20))
+    except (ValueError, TypeError):
+        return error("page and per_page must be integers", status=422)
+
     result = svc.get_all(
         query=request.GET.get("q"),
         category_id=int(request.GET["category_id"]) if request.GET.get("category_id") else None,
@@ -113,8 +119,8 @@ def list_products_view(request):
         has_sku=_parse_bool(request.GET.get("has_sku")),
         has_barcode=_parse_bool(request.GET.get("has_barcode")),
         order_by=request.GET.get("order_by", "-created_at"),
-        page=int(request.GET.get("page", 1)),
-        per_page=int(request.GET.get("per_page", 20)),
+        page=page,
+        per_page=per_page,
     )
     result["items"] = [_serialize_product(p) for p in result["items"]]
     return success(data=result)

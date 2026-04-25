@@ -21,8 +21,8 @@ class CustomerFavoriteService:
         if not product or not product.is_active:
             raise NotFoundError("Product not found")
 
-        result = self.fav_repo.toggle(user_id, product_id)
-        return {"product_id": product_id, "is_favorited": result}
+        is_favorited, _ = self.fav_repo.toggle(user_id, product_id)
+        return {"product_id": product_id, "is_favorited": is_favorited}
 
     def is_favorited(self, user_id: int, product_id: int) -> bool:
         return self.fav_repo.is_favorited(user_id, product_id)

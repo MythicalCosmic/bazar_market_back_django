@@ -56,6 +56,12 @@ def list_notifications_view(request):
     svc = container.resolve(NotificationService)
     user_raw = request.GET.get("user_id")
     is_read = _parse_bool(request.GET.get("is_read"))
+    try:
+        page = int(request.GET.get("page", 1))
+        per_page = int(request.GET.get("per_page", 20))
+    except (ValueError, TypeError):
+        return error("page and per_page must be integers", status=422)
+
     result = svc.get_all(
         query=request.GET.get("q"),
         type=request.GET.get("type"),
@@ -63,8 +69,8 @@ def list_notifications_view(request):
         is_read=is_read,
         user_id=int(user_raw) if user_raw else None,
         order_by=request.GET.get("order_by", "-sent_at"),
-        page=int(request.GET.get("page", 1)),
-        per_page=int(request.GET.get("per_page", 20)),
+        page=page,
+        per_page=per_page,
     )
     result["items"] = [_serialize_notification(n) for n in result["items"]]
     return success(data=result)
