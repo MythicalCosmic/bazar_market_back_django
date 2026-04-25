@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 
-from django.db.models import Count, Sum, Q
+from django.db.models import Count, Sum, Q, F
 from django.utils import timezone
 
 from base.interfaces.coupon import ICouponRepository, ICouponUsageRepository
@@ -48,7 +48,6 @@ class CouponService:
 
         if valid_only:
             now = timezone.now()
-            from django.db.models import F
             qs = qs.filter(
                 is_active=True,
             ).filter(
@@ -85,18 +84,22 @@ class CouponService:
                 raise ValidationError("Value must be positive")
         except (InvalidOperation, ValueError):
             raise ValidationError("Invalid value")
-        current_time = timezone.now()
+        starts_at = _parse_dt(dto.starts_at)
         expires_at = _parse_dt(dto.expires_at)
-        if expires_at and expires_at < current_time:
-            raise ValidationError("Expires at cannot be in the past")
-        
+
+        now = timezone.now()
+        if expires_at and expires_at < now:
+            raise ValidationError("expires_at cannot be in the past")
+        if starts_at and expires_at and starts_at >= expires_at:
+            raise ValidationError("starts_at must be before expires_at")
+
         kwargs = {
             "code": dto.code.upper(),
             "type": dto.type,
             "value": value,
             "per_user_limit": dto.per_user_limit,
-            "starts_at": _parse_dt(dto.starts_at),
-            "expires_at": _parse_dt(dto.expires_at),
+            "starts_at": starts_at,
+            "expires_at": expires_at,
             "is_active": dto.is_active,
         }
         if dto.min_order is not None:
@@ -128,12 +131,27 @@ class CouponService:
             if decimal_field in data and data[decimal_field] is not None:
                 try:
                     data[decimal_field] = Decimal(str(data[decimal_field]))
+                    if data[decimal_field] <= 0:
+                        raise ValidationError(f"{decimal_field} must be positive")
                 except (InvalidOperation, ValueError):
                     raise ValidationError(f"Invalid {decimal_field}")
+
+        effective_type = data.get("type", coupon.type)
+        effective_value = data.get("value", coupon.value)
+        if effective_type == "percent" and effective_value > 100:
+            raise ValidationError("Percent coupon cannot exceed 100")
 
         for dt_field in ("starts_at", "expires_at"):
             if dt_field in data:
                 data[dt_field] = _parse_dt(data[dt_field])
+
+        effective_starts = data.get("starts_at", coupon.starts_at)
+        effective_expires = data.get("expires_at", coupon.expires_at)
+
+        if effective_expires and effective_expires < timezone.now():
+            raise ValidationError("expires_at cannot be in the past")
+        if effective_starts and effective_expires and effective_starts >= effective_expires:
+            raise ValidationError("starts_at must be before expires_at")
 
         if data:
             self.coupon_repo.update(coupon, **data)
@@ -171,7 +189,6 @@ class CouponService:
         active = qs.filter(is_active=True).count()
 
         now = timezone.now()
-        from django.db.models import F
         valid = qs.filter(is_active=True).filter(
             Q(starts_at__isnull=True) | Q(starts_at__lte=now),
             Q(expires_at__isnull=True) | Q(expires_at__gte=now),

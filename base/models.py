@@ -52,6 +52,7 @@ class User(TimestampMixin, SoftDeleteMixin):
     language = models.CharField(max_length=5, choices=Language.choices, default=Language.UZ)
     password = models.CharField(max_length=128, blank=True, default="")
     is_active = models.BooleanField(default=True)
+    is_phone_verified = models.BooleanField(default=False)
     last_seen_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:

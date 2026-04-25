@@ -56,9 +56,9 @@ class PaymentService:
             qs = qs.filter(created_at__gte=date_from)
         if date_to:
             qs = qs.filter(created_at__lte=date_to)
-        if min_amount:
+        if min_amount is not None:
             qs = qs.filter(amount__gte=Decimal(str(min_amount)))
-        if max_amount:
+        if max_amount is not None:
             qs = qs.filter(amount__lte=Decimal(str(max_amount)))
 
         qs = self.payment_repo.apply_ordering(

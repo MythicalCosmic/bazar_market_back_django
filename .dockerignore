@@ -1,0 +1,16 @@
+.git
+.gitignore
+__pycache__
+*.pyc
+*.pyo
+.env
+.env-example
+.venv
+.python-version
+*.sqlite3
+*.log
+.claude
+node_modules
+.DS_Store
+docker-compose.yml
+Makefile

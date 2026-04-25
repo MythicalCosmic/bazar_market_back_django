@@ -43,13 +43,19 @@ def list_categories_view(request):
     is_active = {"true": True, "false": False}.get(is_active_raw.lower()) if is_active_raw else None
     parent_raw = request.GET.get("parent_id")
     parent_id = int(parent_raw) if parent_raw is not None else None
+    try:
+        page = int(request.GET.get("page", 1))
+        per_page = int(request.GET.get("per_page", 20))
+    except (ValueError, TypeError):
+        return error("page and per_page must be integers", status=422)
+
     result = svc.get_all(
         query=request.GET.get("q"),
         is_active=is_active,
         parent_id=parent_id,
         order_by=request.GET.get("order_by", "sort_order"),
-        page=int(request.GET.get("page", 1)),
-        per_page=int(request.GET.get("per_page", 20)),
+        page=page,
+        per_page=per_page,
         is_deleted=bool(request.GET.get("is_deleted", None))
     )
     result["items"] = [_serialize_category(c) for c in result["items"]]

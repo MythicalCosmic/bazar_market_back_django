@@ -1,10 +1,12 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
 
 SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-dev-key-change-in-production")
-DEBUG = True
+DEBUG = os.getenv("DEBUG", "0") == "1"
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
 INSTALLED_APPS = [
@@ -26,7 +28,21 @@ MIDDLEWARE = [
     "base.middlewares.forceJsonResponseMiddleware.JSONResponseMiddleware",
 ]
 
-TELESCOPE_ENABLED = False
+TELESCOPE_ENABLED = os.getenv("TELESCOPE_ENABLED", "0") == "1"
+
+# DevSMS (phone verification)
+DEVSMS_TOKEN = os.getenv("DEVSMS_TOKEN", "")
+DEVSMS_URL = "https://devsms.uz/api/send_sms.php"
+OTP_LENGTH = 6
+OTP_EXPIRY_SECONDS = 120  # 2 minutes
+
+# Telegram Bot
+BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+WEBAPP_URL = os.getenv("WEBAPP_URL", "")
+
+# Thermal receipt printer
+PRINTER_ENABLED = os.getenv("PRINTER_ENABLED", "0") == "1"
+PRINTER_PATH = os.getenv("PRINTER_PATH", "/dev/usb/lp0")
 
 if TELESCOPE_ENABLED:
     MIDDLEWARE.insert(0, "telescope.middleware.TelescopeMiddleware")
@@ -82,24 +98,25 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = "en-us"
-TIME_ZONE = "UTC"
+TIME_ZONE = "Asia/Tashkent"
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-
 ASGI_APPLICATION = "bazar_market_django.asgi.application"
-
 
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels.layers.InMemoryChannelLayer",
     }
 }
-
 
 TELESCOPE = {
     "ENABLED": TELESCOPE_ENABLED,

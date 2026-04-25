@@ -15,8 +15,12 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.urls import path, include
+from base.views.docs import swagger_ui_view, openapi_spec_view
 
 urlpatterns = [
     path('admin-api/', include('admins.urls')),
+    path('api/', include('customer.urls')),
+    path('docs/', swagger_ui_view, name='swagger-ui'),
+    path('docs/openapi.json', openapi_spec_view, name='openapi-spec'),
     path("telescope/", include("telescope.urls")),
 ]

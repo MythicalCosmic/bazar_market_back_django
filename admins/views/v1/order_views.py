@@ -129,6 +129,12 @@ def list_orders_view(request):
     svc = container.resolve(OrderService)
     user_raw = request.GET.get("user_id")
     courier_raw = request.GET.get("courier_id")
+    try:
+        page = int(request.GET.get("page", 1))
+        per_page = int(request.GET.get("per_page", 20))
+    except (ValueError, TypeError):
+        return error("page and per_page must be integers", status=422)
+
     result = svc.get_all(
         query=request.GET.get("q"),
         status=request.GET.get("status"),
@@ -142,8 +148,8 @@ def list_orders_view(request):
         min_total=_parse_decimal(request.GET.get("min_total")),
         max_total=_parse_decimal(request.GET.get("max_total")),
         order_by=request.GET.get("order_by", "-created_at"),
-        page=int(request.GET.get("page", 1)),
-        per_page=int(request.GET.get("per_page", 20)),
+        page=page,
+        per_page=per_page,
     )
     result["items"] = [_serialize_order(o) for o in result["items"]]
     return success(data=result)
@@ -323,3 +329,30 @@ def order_stats_view(request):
     date_from = _parse_date(request.GET.get("date_from"))
     date_to = _parse_date(request.GET.get("date_to"))
     return success(data=svc.stats(date_from=date_from, date_to=date_to))
+
+
+@csrf_exempt
+@require_POST
+@require_permission(P.MANAGE_ORDERS)
+def accept_and_print_view(request, order_id):
+    svc = container.resolve(OrderService)
+    result = svc.update_status(
+        order_id, new_status="confirmed",
+        admin_user=request.user_obj, note="Accepted and printing",
+    )
+    from base.printing.print_queue import enqueue_print
+    enqueue_print(order_id)
+    result["printed"] = True
+    return success(data=result, message="Order confirmed and sent to printer")
+
+
+@csrf_exempt
+@require_POST
+@require_permission(P.MANAGE_ORDERS)
+def print_order_view(request, order_id):
+    from base.models import Order
+    if not Order.objects.filter(pk=order_id).exists():
+        return not_found("Order not found")
+    from base.printing.print_queue import enqueue_print
+    enqueue_print(order_id)
+    return success(message="Print job enqueued")

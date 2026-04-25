@@ -68,6 +68,12 @@ def _serialize_payment_detail(p) -> dict:
 def list_payments_view(request):
     svc = container.resolve(PaymentService)
     order_raw = request.GET.get("order_id")
+    try:
+        page = int(request.GET.get("page", 1))
+        per_page = int(request.GET.get("per_page", 20))
+    except (ValueError, TypeError):
+        return error("page and per_page must be integers", status=422)
+
     result = svc.get_all(
         query=request.GET.get("q"),
         status=request.GET.get("status"),
@@ -78,8 +84,8 @@ def list_payments_view(request):
         min_amount=_parse_decimal(request.GET.get("min_amount")),
         max_amount=_parse_decimal(request.GET.get("max_amount")),
         order_by=request.GET.get("order_by", "-created_at"),
-        page=int(request.GET.get("page", 1)),
-        per_page=int(request.GET.get("per_page", 20)),
+        page=page,
+        per_page=per_page,
     )
     result["items"] = [_serialize_payment(p) for p in result["items"]]
     return success(data=result)

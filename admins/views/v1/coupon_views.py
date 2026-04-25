@@ -61,14 +61,20 @@ def _serialize_coupon(c) -> dict:
 @require_permission(P.MANAGE_COUPONS)
 def list_coupons_view(request):
     svc = container.resolve(CouponService)
+    try:
+        page = int(request.GET.get("page", 1))
+        per_page = int(request.GET.get("per_page", 20))
+    except (ValueError, TypeError):
+        return error("page and per_page must be integers", status=422)
+
     result = svc.get_all(
         query=request.GET.get("q"),
         is_active=_parse_bool(request.GET.get("is_active")),
         type=request.GET.get("type"),
         valid_only=_parse_bool(request.GET.get("valid_only")) or False,
         order_by=request.GET.get("order_by", "-created_at"),
-        page=int(request.GET.get("page", 1)),
-        per_page=int(request.GET.get("per_page", 20)),
+        page=page,
+        per_page=per_page,
     )
     result["items"] = [_serialize_coupon(c) for c in result["items"]]
     return success(data=result)

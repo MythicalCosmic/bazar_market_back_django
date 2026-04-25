@@ -162,19 +162,19 @@ class CategoryService:
 
     def activate(self, category_id: int) -> dict:
         category = self.category_repository.get_by_id(category_id)
-        if category.is_active:
-            raise NotFoundError("This category is already active or not found")
         if not category:
             raise NotFoundError("Category not found")
+        if category.is_active:
+            raise ValidationError("This category is already active")
         self.category_repository.activate(category)
         return {"message": "Category activated"}
 
     def deactivate(self, category_id: int) -> dict:
         category = self.category_repository.get_by_id(category_id)
-        if not category.is_active:
-            raise NotFoundError("This category is already deactivated or not found")
         if not category:
             raise NotFoundError("Category not found")
+        if not category.is_active:
+            raise ValidationError("This category is already deactivated")
         self.category_repository.deactivate(category)
         return {"message": "Category deactivated"}
 
