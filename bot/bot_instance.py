@@ -13,5 +13,6 @@ def get_bot() -> Bot:
     if _bot is None:
         _bot = Bot(
             token=settings.BOT_TOKEN,
+            default=DefaultBotProperties(parse_mode=ParseMode.HTML),
         )
     return _bot

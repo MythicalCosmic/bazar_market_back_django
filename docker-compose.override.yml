@@ -16,7 +16,12 @@ services:
       - .:/app
       - /app/.venv
 
-  scheduler:
+  celery-worker:
+    volumes:
+      - .:/app
+      - /app/.venv
+
+  celery-beat:
     volumes:
       - .:/app
       - /app/.venv

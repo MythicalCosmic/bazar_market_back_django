@@ -342,6 +342,7 @@ class Command(BaseCommand):
             {"key": "max_delivery_distance_km", "value": "15", "type": "int", "description": "Max delivery radius"},
             {"key": "orders_enabled", "value": "true", "type": "bool", "description": "Accept new orders"},
             {"key": "delivery_fee", "value": "9000", "type": "int", "description": "Flat delivery fee in som"},
+            {"key": "bot_username", "value": "BazarMarketBot", "type": "string", "description": "Telegram bot username (without @)"},
         ]
 
         created = 0

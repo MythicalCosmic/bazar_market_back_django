@@ -82,6 +82,14 @@ class BannerService:
             is_active=dto.is_active,
         )
 
+        # Broadcast to customers via Telegram if active
+        if banner.is_active:
+            try:
+                from bot.notify import notify_customers_new_banner
+                notify_customers_new_banner(banner)
+            except Exception:
+                pass  # Non-critical
+
         return {"id": banner.id, "title": banner.title}
 
     def update_banner(self, banner_id: int, dto: UpdateBannerDTO) -> dict:

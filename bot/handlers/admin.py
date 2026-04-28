@@ -68,6 +68,49 @@ async def admin_stats(callback: CallbackQuery, django_user, lang: str, **kwargs)
     await callback.answer()
 
 
+@router.callback_query(F.data == "admin_banners")
+async def admin_banners(callback: CallbackQuery, django_user, lang: str, **kwargs):
+    if not django_user or django_user.role not in ADMIN_ROLES:
+        await callback.answer("Access denied", show_alert=True)
+        return
+
+    from base.models import Banner
+    from django.db.models import Q
+    from django.utils import timezone
+
+    now = timezone.now()
+    banners = await sync_to_async(list)(
+        Banner.objects.filter(is_active=True)
+        .filter(
+            Q(starts_at__isnull=True) | Q(starts_at__lte=now),
+            Q(expires_at__isnull=True) | Q(expires_at__gte=now),
+        )
+        .order_by("sort_order")[:20]
+    )
+
+    if not banners:
+        await callback.message.answer(t("no_banners", lang))
+        await callback.answer()
+        return
+
+    lines = []
+    for b in banners:
+        title = b.title or f"Banner #{b.id}"
+        lines.append(f"🖼 <b>{title}</b> (#{b.id}, sort: {b.sort_order})")
+    await callback.message.answer("\n".join(lines))
+    await callback.answer()
+
+
+@router.callback_query(F.data == "admin_back_to_panel")
+async def back_to_panel(callback: CallbackQuery, django_user, lang: str, **kwargs):
+    if not django_user or django_user.role not in ADMIN_ROLES:
+        await callback.answer("Access denied", show_alert=True)
+        return
+
+    await callback.message.edit_text(t("admin_panel", lang), reply_markup=admin_panel_keyboard(lang))
+    await callback.answer()
+
+
 @router.callback_query(F.data.startswith("accept_print:"))
 async def accept_and_print(callback: CallbackQuery, django_user, lang: str, **kwargs):
     if not django_user or django_user.role not in ADMIN_ROLES:

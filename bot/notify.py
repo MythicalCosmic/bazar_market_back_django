@@ -1,61 +1,48 @@
-import asyncio
 import logging
 
 logger = logging.getLogger(__name__)
 
 
 def notify_admins_new_order(order):
-    """Send Telegram notification to all admin users about a new order.
-    Called from Django (sync context) after order placement."""
-    from base.models import User
-
-    admin_tg_ids = list(
-        User.objects.filter(
-            role__in=["admin", "manager"],
-            telegram_id__isnull=False,
-            is_active=True,
-            deleted_at__isnull=True,
-        ).values_list("telegram_id", flat=True)
-    )
-
-    if not admin_tg_ids:
-        return
-
-    items = list(order.items.all())
-    text = _format_order(order, items)
-
-    from bot.keyboards import accept_print_keyboard
-    keyboard = accept_print_keyboard(order.id)
-
-    async def _send():
-        from bot.bot_instance import get_bot
-        b = get_bot()
-        for tg_id in admin_tg_ids:
-            try:
-                await b.send_message(tg_id, text, reply_markup=keyboard)
-            except Exception as e:
-                logger.warning(f"Failed to notify admin {tg_id}: {e}")
-
+    """Send Telegram notification to all admin users about a new order."""
     try:
-        loop = asyncio.get_running_loop()
-        loop.create_task(_send())
-    except RuntimeError:
-        asyncio.run(_send())
+        from bot.tasks import task_notify_admins_new_order
+        task_notify_admins_new_order.delay(order.id)
+    except Exception as e:
+        logger.warning(f"Failed to enqueue admin notification: {e}")
 
 
-def _format_order(order, items) -> str:
-    item_lines = []
-    for item in items:
-        qty = f"{item.quantity:g}"
-        item_lines.append(f"  • {item.product_name} — {qty} {item.unit} x {item.unit_price:,.0f} = {item.total:,.0f}")
+def notify_customer_status_change(order):
+    """Notify customer via Telegram when order status changes."""
+    try:
+        from bot.tasks import task_notify_customer_status
+        task_notify_customer_status.delay(order.id)
+    except Exception as e:
+        logger.warning(f"Failed to enqueue status notification: {e}")
 
-    from bot.texts import TEXTS
-    return TEXTS["new_order"].format(
-        order_number=order.order_number,
-        customer=f"{order.user.first_name} {order.user.last_name}".strip(),
-        phone=order.user.phone or "—",
-        address=order.delivery_address_text or "—",
-        total=f"{order.total:,.0f}",
-        payment=order.get_payment_method_display() if order.payment_method else "—",
-        items="\n".join(item_lines),
-    )
+
+def notify_customers_new_banner(banner):
+    """Broadcast a new banner to all customers with telegram_id."""
+    try:
+        from bot.tasks import task_broadcast_banner
+        task_broadcast_banner.delay(banner.id)
+    except Exception as e:
+        logger.warning(f"Failed to enqueue banner broadcast: {e}")
+
+
+def notify_cart_price_change(product, old_price, new_price):
+    """Notify customers who have this product in their cart about a price change."""
+    try:
+        from bot.tasks import task_notify_cart_price_change
+        task_notify_cart_price_change.delay(product.id, str(old_price), str(new_price))
+    except Exception as e:
+        logger.warning(f"Failed to enqueue price change notification: {e}")
+
+
+def notify_referral_reward(referrer, coupon_code):
+    """Notify referrer via Telegram about their reward coupon."""
+    try:
+        from bot.tasks import task_notify_referral_reward
+        task_notify_referral_reward.delay(referrer.id, coupon_code)
+    except Exception as e:
+        logger.warning(f"Failed to enqueue referral reward notification: {e}")

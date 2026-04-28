@@ -152,6 +152,14 @@ class OrderService:
             except Exception:
                 pass  # Non-critical
 
+        # Notify customer via Telegram
+        try:
+            order.refresh_from_db()
+            from bot.notify import notify_customer_status_change
+            notify_customer_status_change(order)
+        except Exception:
+            pass  # Non-critical
+
         return {"order_id": order.id, "status": new_status, "previous_status": old_status}
 
     @transaction.atomic

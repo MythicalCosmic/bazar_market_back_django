@@ -47,6 +47,7 @@ def main_menu_keyboard(lang: str, is_admin: bool = False) -> ReplyKeyboardMarkup
 def admin_panel_keyboard(lang: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=t("admin_stats", lang), callback_data="admin_stats")],
+        [InlineKeyboardButton(text=t("admin_banners", lang), callback_data="admin_banners")],
     ])
 
 

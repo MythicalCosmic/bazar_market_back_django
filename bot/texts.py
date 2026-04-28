@@ -45,8 +45,32 @@ TEXTS = {
         "ru": "Сейчас нет активных скидок.",
     },
     "referral_info": {
-        "uz": "🎁 Sizning referal kodingiz: <code>{code}</code>\n\nHavola: {link}\n\nJalb qilinganlar: {count}\nMukofotlar: {rewards} UZS",
-        "ru": "🎁 Ваш реферальный код: <code>{code}</code>\n\nСсылка: {link}\n\nПриглашённые: {count}\nНаграды: {rewards} UZS",
+        "uz": (
+            "┌─────────────────────┐\n"
+            "   🎁  REFERAL DASTURI\n"
+            "└─────────────────────┘\n\n"
+            "📋 Sizning kodingiz:\n"
+            "   <code>{code}</code>\n\n"
+            "🔗 Havola:\n"
+            "   {link}\n\n"
+            "👥 Taklif qilganlar: <b>{count}</b> ta\n"
+            "💰 Mukofotlar: <b>{rewards} UZS</b>\n\n"
+            "<i>Do'stlaringizni taklif qiling va\n"
+            "har bir buyurtma uchun mukofot oling!</i>"
+        ),
+        "ru": (
+            "┌─────────────────────┐\n"
+            "   🎁  РЕФЕРАЛЬНАЯ ПРОГРАММА\n"
+            "└─────────────────────┘\n\n"
+            "📋 Ваш код:\n"
+            "   <code>{code}</code>\n\n"
+            "🔗 Ссылка:\n"
+            "   {link}\n\n"
+            "👥 Приглашённые: <b>{count}</b>\n"
+            "💰 Награды: <b>{rewards} UZS</b>\n\n"
+            "<i>Приглашайте друзей и получайте\n"
+            "награды за каждый заказ!</i>"
+        ),
     },
     "admin_panel": {
         "uz": "⚙️ Admin panel",
@@ -68,6 +92,43 @@ TEXTS = {
         "uz": "✅ Buyurtma #{order_number} qabul qilindi va chop etilmoqda!",
         "ru": "✅ Заказ #{order_number} принят и отправлен на печать!",
     },
+    "referral_applied": {
+        "uz": "🎁 Referal kod muvaffaqiyatli qo'llanildi!",
+        "ru": "🎁 Реферальный код успешно применён!",
+    },
+    "referral_not_registered": {
+        "uz": "🎁 Referal kodingizni olish uchun avval ro'yxatdan o'ting.",
+        "ru": "🎁 Зарегистрируйтесь, чтобы получить реферальный код.",
+    },
+    "admin_banners": {
+        "uz": "🖼 Bannerlar",
+        "ru": "🖼 Баннеры",
+    },
+    "no_banners": {
+        "uz": "Hozircha faol bannerlar yo'q.",
+        "ru": "Активных баннеров пока нет.",
+    },
+}
+
+
+STATUS_LABELS = {
+    "pending":    {"uz": "Kutilmoqda",     "ru": "Ожидает"},
+    "confirmed":  {"uz": "Tasdiqlangan",   "ru": "Подтверждён"},
+    "preparing":  {"uz": "Tayyorlanmoqda", "ru": "Готовится"},
+    "delivering": {"uz": "Yetkazilmoqda",  "ru": "Доставляется"},
+    "delivered":  {"uz": "Yetkazildi",     "ru": "Доставлен"},
+    "completed":  {"uz": "Yakunlandi",     "ru": "Завершён"},
+    "cancelled":  {"uz": "Bekor qilindi",  "ru": "Отменён"},
+}
+
+STATUS_EMOJI = {
+    "pending": "⏳", "confirmed": "✅", "preparing": "👨‍🍳",
+    "delivering": "🚗", "delivered": "📬", "completed": "✅", "cancelled": "❌",
+}
+
+PAYMENT_LABELS = {
+    "cash": {"uz": "Naqd", "ru": "Наличные"},
+    "card": {"uz": "Karta", "ru": "Карта"},
 }
 
 
@@ -78,3 +139,15 @@ def t(key: str, lang: str = "uz") -> str:
     if isinstance(val, dict):
         return val.get(lang, val.get("uz", key))
     return val
+
+
+def status_label(status: str, lang: str = "uz") -> str:
+    return STATUS_LABELS.get(status, {}).get(lang, status)
+
+
+def status_emoji(status: str) -> str:
+    return STATUS_EMOJI.get(status, "📋")
+
+
+def payment_label(method: str, lang: str = "uz") -> str:
+    return PAYMENT_LABELS.get(method, {}).get(lang, method or "—")

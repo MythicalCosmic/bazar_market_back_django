@@ -53,11 +53,24 @@ services:
       redis:
         condition: service_healthy
 
-  scheduler:
+  celery-worker:
     build: .
     restart: always
-    entrypoint: ["sh", "-c"]
-    command: ["while true; do python manage.py cancel_expired_orders; sleep 300; done"]
+    command: celery -A bazar_market_django worker -l info --concurrency=2
+    env_file:
+      - .env
+    volumes:
+      - media_files:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery-beat:
+    build: .
+    restart: always
+    command: celery -A bazar_market_django beat -l info
     env_file:
       - .env
     depends_on:

@@ -45,7 +45,7 @@ class CustomerReferralService:
 
         return {
             "referral_code": code,
-            "referral_link": f"https://t.me/BazarMarketBot?start=ref_{code}",
+            "referral_link": f"https://t.me/{self._get_bot_username()}?start=ref_{code}",
             "total_referrals": count,
             "total_rewards": str(rewards.get("total") or 0),
             "reward_info": {
@@ -139,8 +139,14 @@ class CustomerReferralService:
                     channel="telegram",
                     payload={"coupon_code": code},
                 )
+                # Also send via Telegram
+                from bot.notify import notify_referral_reward
+                notify_referral_reward(referrer, code)
         except Exception:
             pass
+
+    def _get_bot_username(self) -> str:
+        return str(self.setting_repo.get_value("bot_username", "BazarMarketBot"))
 
     def _setting(self, key: str) -> str:
         default = SETTING_DEFAULTS.get(key, "")
