@@ -47,8 +47,61 @@ def main_menu_keyboard(lang: str, is_admin: bool = False) -> ReplyKeyboardMarkup
 def admin_panel_keyboard(lang: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=t("admin_stats", lang), callback_data="admin_stats")],
+        [InlineKeyboardButton(text=t("admin_orders", lang), callback_data="admin_orders")],
         [InlineKeyboardButton(text=t("admin_banners", lang), callback_data="admin_banners")],
     ])
+
+
+def order_actions_keyboard(order_id: int, status: str, payment_status: str) -> InlineKeyboardMarkup:
+    """Build inline buttons for valid status transitions + payment status."""
+    from bot.texts import STATUS_LABELS
+
+    TRANSITIONS = {
+        "pending": ["confirmed", "cancelled"],
+        "confirmed": ["preparing", "cancelled"],
+        "preparing": ["delivering", "cancelled"],
+        "delivering": ["delivered", "cancelled"],
+        "delivered": ["completed"],
+    }
+
+    STATUS_EMOJI = {
+        "confirmed": "✅", "preparing": "👨‍🍳", "delivering": "🚗",
+        "delivered": "📬", "completed": "✅", "cancelled": "❌",
+    }
+
+    PAYMENT_LABELS = {
+        "unpaid": "To'lanmagan", "pending": "Kutilmoqda",
+        "paid": "To'langan", "refunded": "Qaytarilgan",
+    }
+
+    rows = []
+
+    # Status transition buttons
+    allowed = TRANSITIONS.get(status, [])
+    if allowed:
+        status_buttons = []
+        for s in allowed:
+            emoji = STATUS_EMOJI.get(s, "")
+            label = STATUS_LABELS.get(s, {}).get("uz", s)
+            status_buttons.append(
+                InlineKeyboardButton(text=f"{emoji} {label}", callback_data=f"os:{order_id}:{s}")
+            )
+        rows.append(status_buttons)
+
+    # Payment status buttons
+    pay_buttons = []
+    if payment_status != "paid":
+        pay_buttons.append(
+            InlineKeyboardButton(text="💰 To'langan", callback_data=f"op:{order_id}:paid")
+        )
+    if payment_status == "paid":
+        pay_buttons.append(
+            InlineKeyboardButton(text="↩️ Qaytarish", callback_data=f"op:{order_id}:refunded")
+        )
+    if pay_buttons:
+        rows.append(pay_buttons)
+
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def accept_print_keyboard(order_id: int) -> InlineKeyboardMarkup:

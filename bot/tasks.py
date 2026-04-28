@@ -85,6 +85,9 @@ def task_notify_customer_status(self, order_id):
         _run_async(_send)
 
     except Exception as exc:
+        if "chat not found" in str(exc).lower() or "bot was blocked" in str(exc).lower():
+            logger.info(f"Customer {tg_id} unreachable (not started bot), skipping")
+            return
         logger.exception(f"task_notify_customer_status failed for order {order_id}")
         raise self.retry(exc=exc)
 

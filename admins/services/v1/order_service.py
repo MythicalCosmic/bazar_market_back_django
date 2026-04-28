@@ -126,8 +126,20 @@ class OrderService:
                 f"Allowed: {', '.join(allowed) if allowed else 'none (terminal)'}"
             )
 
-        if new_status == "delivering" and not order.assigned_courier_id:
-            raise ValidationError("Assign a courier before marking as delivering")
+        # Auto-assign courier if moving to delivering/preparing and none assigned
+        if new_status in ("preparing", "delivering") and not order.assigned_courier_id:
+            courier = self._find_available_courier()
+            if courier:
+                self.order_repo.update(order, assigned_courier=courier)
+                self.log_repo.log_transition(
+                    order_id=order.id,
+                    from_status=old_status,
+                    to_status=old_status,
+                    changed_by_id=admin_user.id,
+                    note=f"Auto-assigned courier: {courier.first_name} (ID {courier.id})",
+                )
+            elif new_status == "delivering":
+                raise ValidationError("No available couriers to assign")
 
         self.order_repo.update_status(order, new_status)
 
@@ -321,6 +333,27 @@ class OrderService:
             raise ValidationError("Minimum order total must be non-negative")
         self.setting_repo.set_value("min_order_total", str(amount), "string", "Minimum order total")
         return {"min_order_total": str(amount)}
+
+    def _find_available_courier(self):
+        """Find the courier with the fewest active deliveries."""
+        from django.db.models import Count, Q
+
+        active_statuses = ["confirmed", "preparing", "delivering"]
+        couriers = (
+            User.objects.filter(
+                role=User.Role.COURIER,
+                is_active=True,
+                deleted_at__isnull=True,
+            )
+            .annotate(
+                active_orders=Count(
+                    "assigned_orders",
+                    filter=Q(assigned_orders__status__in=active_statuses),
+                )
+            )
+            .order_by("active_orders")
+        )
+        return couriers.first()
 
     def stats(self, date_from=None, date_to=None) -> dict:
         qs = self.order_repo.get_all()

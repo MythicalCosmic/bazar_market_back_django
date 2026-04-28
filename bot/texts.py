@@ -108,6 +108,22 @@ TEXTS = {
         "uz": "Hozircha faol bannerlar yo'q.",
         "ru": "Активных баннеров пока нет.",
     },
+    "admin_orders": {
+        "uz": "📦 Buyurtmalar",
+        "ru": "📦 Заказы",
+    },
+    "no_active_orders": {
+        "uz": "Faol buyurtmalar yo'q.",
+        "ru": "Активных заказов нет.",
+    },
+    "order_status_updated": {
+        "uz": "✅ Buyurtma #{order_number} holati yangilandi: {status}",
+        "ru": "✅ Заказ #{order_number} статус обновлён: {status}",
+    },
+    "order_payment_updated": {
+        "uz": "✅ Buyurtma #{order_number} to'lov holati: {status}",
+        "ru": "✅ Заказ #{order_number} статус оплаты: {status}",
+    },
 }
 
 

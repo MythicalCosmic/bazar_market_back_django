@@ -4,7 +4,7 @@ from asgiref.sync import sync_to_async
 
 from bot.states import MainMenu
 from bot.texts import t, TEXTS
-from bot.keyboards import admin_panel_keyboard
+from bot.keyboards import admin_panel_keyboard, order_actions_keyboard
 
 router = Router()
 
@@ -68,6 +68,153 @@ async def admin_stats(callback: CallbackQuery, django_user, lang: str, **kwargs)
     await callback.answer()
 
 
+@router.callback_query(F.data == "admin_orders")
+async def admin_orders(callback: CallbackQuery, django_user, lang: str, **kwargs):
+    if not django_user or django_user.role not in ADMIN_ROLES:
+        await callback.answer("Access denied", show_alert=True)
+        return
+
+    from base.models import Order
+    from bot.texts import status_label, status_emoji, payment_label
+
+    orders = await sync_to_async(list)(
+        Order.objects.select_related("user")
+        .exclude(status__in=["completed", "cancelled"])
+        .order_by("-created_at")[:10]
+    )
+
+    if not orders:
+        await callback.message.answer(t("no_active_orders", lang))
+        await callback.answer()
+        return
+
+    for o in orders:
+        emoji = status_emoji(o.status)
+        user_name = f"{o.user.first_name} {o.user.last_name}".strip()
+        text = (
+            f"📦 <b>#{o.order_number}</b>\n"
+            f"👤 {user_name} | {o.user.phone or '—'}\n"
+            f"{emoji} {status_label(o.status, lang)}\n"
+            f"💰 {o.total:,.0f} so'm | 💳 {payment_label(o.payment_method, lang)}\n"
+            f"📅 {o.created_at.strftime('%d.%m.%Y %H:%M')}"
+        )
+        kb = order_actions_keyboard(o.id, o.status, o.payment_status)
+        await callback.message.answer(text, reply_markup=kb)
+
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("os:"))
+async def update_order_status(callback: CallbackQuery, django_user, lang: str, **kwargs):
+    """Update order status. Callback: os:{order_id}:{new_status}"""
+    if not django_user or django_user.role not in ADMIN_ROLES:
+        await callback.answer("Access denied", show_alert=True)
+        return
+
+    parts = callback.data.split(":")
+    order_id = int(parts[1])
+    new_status = parts[2]
+
+    from base.container import container
+    from admins.services.v1.order_service import OrderService
+    from bot.texts import status_label
+
+    svc = container.resolve(OrderService)
+    try:
+        result = await sync_to_async(svc.update_status)(
+            order_id, new_status, django_user, "Updated via Telegram"
+        )
+
+        # If confirmed, also print
+        if new_status == "confirmed":
+            from base.printing.print_queue import enqueue_print
+            await sync_to_async(enqueue_print)(order_id)
+
+        status_text = status_label(new_status, lang)
+        order_number = result.get("order_id", order_id)
+        await callback.answer(
+            t("order_status_updated", lang).format(order_number=order_number, status=status_text),
+            show_alert=True,
+        )
+
+        # Refresh the message with updated buttons
+        from base.models import Order
+        order = await sync_to_async(
+            Order.objects.select_related("user").filter(pk=order_id).first
+        )()
+        if order:
+            from bot.texts import status_emoji, payment_label
+            emoji = status_emoji(order.status)
+            user_name = f"{order.user.first_name} {order.user.last_name}".strip()
+            text = (
+                f"📦 <b>#{order.order_number}</b>\n"
+                f"👤 {user_name} | {order.user.phone or '—'}\n"
+                f"{emoji} {status_label(order.status, lang)}\n"
+                f"💰 {order.total:,.0f} so'm | 💳 {payment_label(order.payment_method, lang)}\n"
+                f"📅 {order.created_at.strftime('%d.%m.%Y %H:%M')}"
+            )
+            kb = order_actions_keyboard(order.id, order.status, order.payment_status)
+            await callback.message.edit_text(text, reply_markup=kb if kb.inline_keyboard else None)
+
+    except Exception as e:
+        await callback.answer(str(e)[:200], show_alert=True)
+
+
+@router.callback_query(F.data.startswith("op:"))
+async def update_payment_status(callback: CallbackQuery, django_user, lang: str, **kwargs):
+    """Update payment status. Callback: op:{order_id}:{new_payment_status}"""
+    if not django_user or django_user.role not in ADMIN_ROLES:
+        await callback.answer("Access denied", show_alert=True)
+        return
+
+    parts = callback.data.split(":")
+    order_id = int(parts[1])
+    new_payment = parts[2]
+
+    from base.container import container
+    from admins.services.v1.order_service import OrderService
+    from bot.texts import status_label
+
+    PAYMENT_LABELS = {
+        "unpaid": "To'lanmagan", "pending": "Kutilmoqda",
+        "paid": "To'langan", "refunded": "Qaytarilgan",
+    }
+
+    svc = container.resolve(OrderService)
+    try:
+        result = await sync_to_async(svc.update_payment_status)(
+            order_id, new_payment, django_user
+        )
+
+        pay_text = PAYMENT_LABELS.get(new_payment, new_payment)
+        await callback.answer(
+            t("order_payment_updated", lang).format(order_number=order_id, status=pay_text),
+            show_alert=True,
+        )
+
+        # Refresh the message with updated buttons
+        from base.models import Order
+        from bot.texts import status_emoji, payment_label
+        order = await sync_to_async(
+            Order.objects.select_related("user").filter(pk=order_id).first
+        )()
+        if order:
+            emoji = status_emoji(order.status)
+            user_name = f"{order.user.first_name} {order.user.last_name}".strip()
+            text = (
+                f"📦 <b>#{order.order_number}</b>\n"
+                f"👤 {user_name} | {order.user.phone or '—'}\n"
+                f"{emoji} {status_label(order.status, lang)}\n"
+                f"💰 {order.total:,.0f} so'm | 💳 {payment_label(order.payment_method, lang)}\n"
+                f"📅 {order.created_at.strftime('%d.%m.%Y %H:%M')}"
+            )
+            kb = order_actions_keyboard(order.id, order.status, order.payment_status)
+            await callback.message.edit_text(text, reply_markup=kb if kb.inline_keyboard else None)
+
+    except Exception as e:
+        await callback.answer(str(e)[:200], show_alert=True)
+
+
 @router.callback_query(F.data == "admin_banners")
 async def admin_banners(callback: CallbackQuery, django_user, lang: str, **kwargs):
     if not django_user or django_user.role not in ADMIN_ROLES:
@@ -122,6 +269,7 @@ async def accept_and_print(callback: CallbackQuery, django_user, lang: str, **kw
     from base.container import container
     from admins.services.v1.order_service import OrderService
     from base.printing.print_queue import enqueue_print
+    from base.models import Order
 
     svc = container.resolve(OrderService)
     try:
@@ -135,6 +283,25 @@ async def accept_and_print(callback: CallbackQuery, django_user, lang: str, **kw
             t("order_accepted", lang).format(order_number=order_number),
             show_alert=True,
         )
-        await callback.message.edit_reply_markup(reply_markup=None)
+
+        # Replace "Accept & Print" with order management buttons
+        order = await sync_to_async(
+            Order.objects.select_related("user").filter(pk=order_id).first
+        )()
+        if order:
+            from bot.texts import status_label, status_emoji, payment_label
+            emoji = status_emoji(order.status)
+            user_name = f"{order.user.first_name} {order.user.last_name}".strip()
+            text = (
+                f"📦 <b>#{order.order_number}</b>\n"
+                f"👤 {user_name} | {order.user.phone or '—'}\n"
+                f"{emoji} {status_label(order.status, lang)}\n"
+                f"💰 {order.total:,.0f} so'm | 💳 {payment_label(order.payment_method, lang)}\n"
+                f"📅 {order.created_at.strftime('%d.%m.%Y %H:%M')}"
+            )
+            kb = order_actions_keyboard(order.id, order.status, order.payment_status)
+            await callback.message.edit_text(text, reply_markup=kb)
+        else:
+            await callback.message.edit_reply_markup(reply_markup=None)
     except Exception as e:
         await callback.answer(str(e)[:200], show_alert=True)
