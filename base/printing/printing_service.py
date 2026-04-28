@@ -136,23 +136,24 @@ def print_order_receipt(order, *, store_name: str = "BAZAR MARKET"):
     # ── Order info ──
     printer.set(align="left")
     now = datetime.now()
-    printer.text(_line("Order:", order.order_number) + "\n")
-    printer.text(_line("Date:", now.strftime("%d.%m.%Y  %H:%M")) + "\n")
+    printer.text(_line("Buyurtma:", order.order_number) + "\n")
+    printer.text(_line("Sana:", now.strftime("%d.%m.%Y  %H:%M")) + "\n")
     if order.payment_method:
-        printer.text(_line("Payment:", order.get_payment_method_display()) + "\n")
+        pay_labels = {"cash": "Naqd", "card": "Karta"}
+        printer.text(_line("To'lov:", pay_labels.get(order.payment_method, order.payment_method)) + "\n")
     printer.text(_separator() + "\n")
 
     # ── Customer info ──
     full_name = f"{user.first_name} {user.last_name}".strip() or "—"
-    printer.text(f"Client: {full_name}\n")
+    printer.text(f"Mijoz:  {full_name}\n")
     if user.phone:
-        printer.text(f"Phone:  {user.phone}\n")
+        printer.text(f"Tel:    {user.phone}\n")
     if order.delivery_address_text:
-        printer.text(f"Addr:   {order.delivery_address_text}\n")
+        printer.text(f"Manzil: {order.delivery_address_text}\n")
     printer.text(_separator() + "\n")
 
     # ── Items ──
-    printer.text(_center("ITEMS") + "\n")
+    printer.text(_center("MAHSULOTLAR") + "\n")
     printer.text(_separator() + "\n")
 
     for item in items:
@@ -171,23 +172,24 @@ def print_order_receipt(order, *, store_name: str = "BAZAR MARKET"):
     printer.text(_separator() + "\n")
 
     # ── Totals ──
-    printer.text(_line("Subtotal:", f"{_fmt(order.subtotal)} UZS") + "\n")
+    printer.text(_line("Jami:", f"{_fmt(order.subtotal)} so'm") + "\n")
 
     if order.delivery_fee and order.delivery_fee > 0:
-        printer.text(_line("Delivery:", f"{_fmt(order.delivery_fee)} UZS") + "\n")
+        printer.text(_line("Yetkazish:", f"{_fmt(order.delivery_fee)} so'm") + "\n")
 
     if order.discount and order.discount > 0:
-        printer.text(_line("Discount:", f"-{_fmt(order.discount)} UZS") + "\n")
+        printer.text(_line("Chegirma:", f"-{_fmt(order.discount)} so'm") + "\n")
 
     printer.text(_double_separator() + "\n")
     printer.set(width=2, height=1)
-    printer.text(_line("TOTAL:", f"{_fmt(order.total)} UZS") + "\n")
+    printer.text(_line("UMUMIY:", f"{_fmt(order.total)} so'm") + "\n")
     printer.set(width=1, height=1)
     printer.text(_double_separator() + "\n")
 
     # ── Payment status ──
     printer.set(align="center")
-    status_display = order.get_payment_status_display().upper()
+    pay_status = {"unpaid": "TO'LANMAGAN", "pending": "KUTILMOQDA", "paid": "TO'LANGAN", "refunded": "QAYTARILGAN"}
+    status_display = pay_status.get(order.payment_status, order.payment_status.upper())
     printer.text(f"[ {status_display} ]\n\n")
 
     # ── QR code with order number for lookup ──
@@ -196,8 +198,8 @@ def print_order_receipt(order, *, store_name: str = "BAZAR MARKET"):
 
     # ── Thank-you message ──
     printer.set(align="center")
-    printer.text("Thank you for your order!\n")
-    printer.text("We appreciate your business.\n\n")
+    printer.text("Xaridingiz uchun rahmat!\n")
+    printer.text("Sizni yana kutamiz.\n\n")
 
     printer.cut()
 
@@ -216,7 +218,7 @@ def print_receipt(
     delivery_fee: Decimal | str = 0,
     payment_method: str = "",
     order_number: str = "",
-    thanks_message: str = "Thank you for your order!\nWe appreciate your business.",
+    thanks_message: str = "Xaridingiz uchun rahmat!\nSizni yana kutamiz.",
 ):
     """Standalone receipt that doesn't require a DB Order.
 
@@ -241,23 +243,23 @@ def print_receipt(
     printer.set(align="left")
     now = datetime.now()
     if order_number:
-        printer.text(_line("Order:", order_number) + "\n")
-    printer.text(_line("Date:", now.strftime("%d.%m.%Y  %H:%M")) + "\n")
+        printer.text(_line("Buyurtma:", order_number) + "\n")
+    printer.text(_line("Sana:", now.strftime("%d.%m.%Y  %H:%M")) + "\n")
     if payment_method:
-        printer.text(_line("Payment:", payment_method) + "\n")
+        printer.text(_line("To'lov:", payment_method) + "\n")
     printer.text(_separator() + "\n")
 
     # ── Customer ──
-    printer.text(f"Client: {client_name}\n")
+    printer.text(f"Mijoz:  {client_name}\n")
     if client_phone:
-        printer.text(f"Phone:  {client_phone}\n")
+        printer.text(f"Tel:    {client_phone}\n")
     if client_address:
-        printer.text(f"Addr:   {client_address}\n")
+        printer.text(f"Manzil: {client_address}\n")
     printer.text(_separator() + "\n")
 
     # ── Items ──
     printer.set(align="left")
-    printer.text(_center("ITEMS") + "\n")
+    printer.text(_center("MAHSULOTLAR") + "\n")
     printer.text(_separator() + "\n")
 
     subtotal = Decimal(0)
@@ -286,17 +288,17 @@ def print_receipt(
     delivery_dec = Decimal(str(delivery_fee)) if not isinstance(delivery_fee, Decimal) else delivery_fee
 
     if subtotal > 0:
-        printer.text(_line("Subtotal:", f"{_fmt(subtotal)} UZS") + "\n")
+        printer.text(_line("Jami:", f"{_fmt(subtotal)} so'm") + "\n")
 
     if delivery_dec > 0:
-        printer.text(_line("Delivery:", f"{_fmt(delivery_dec)} UZS") + "\n")
+        printer.text(_line("Yetkazish:", f"{_fmt(delivery_dec)} so'm") + "\n")
 
     if discount_dec > 0:
-        printer.text(_line("Discount:", f"-{_fmt(discount_dec)} UZS") + "\n")
+        printer.text(_line("Chegirma:", f"-{_fmt(discount_dec)} so'm") + "\n")
 
     printer.text(_double_separator() + "\n")
     printer.set(width=2, height=1)
-    printer.text(_line("TOTAL:", f"{_fmt(total_dec)} UZS") + "\n")
+    printer.text(_line("UMUMIY:", f"{_fmt(total_dec)} so'm") + "\n")
     printer.set(width=1, height=1)
     printer.text(_double_separator() + "\n\n")
 

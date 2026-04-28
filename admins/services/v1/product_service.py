@@ -237,8 +237,18 @@ class ProductService:
         if "price" in data and data["price"] is not None and data["price"] < 0:
             raise ValidationError("Price must be non-negative")
 
+        old_price = product.price
+
         if data:
             self.product_repo.update(product, **data)
+
+        # Notify cart users if price changed
+        if "price" in data and data["price"] is not None and data["price"] != old_price:
+            try:
+                from bot.notify import notify_cart_price_change
+                notify_cart_price_change(product, old_price, product.price)
+            except Exception:
+                pass  # Non-critical
 
         return {"id": product.id, "name_uz": product.name_uz}
 

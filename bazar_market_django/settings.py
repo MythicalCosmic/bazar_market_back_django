@@ -40,9 +40,8 @@ OTP_EXPIRY_SECONDS = 120  # 2 minutes
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 WEBAPP_URL = os.getenv("WEBAPP_URL", "")
 
-# Thermal receipt printer
-PRINTER_ENABLED = os.getenv("PRINTER_ENABLED", "0") == "1"
-PRINTER_PATH = os.getenv("PRINTER_PATH", "/dev/usb/lp0")
+# Thermal receipt printer (WebSocket-based)
+PRINTER_SECRET = os.getenv("PRINTER_SECRET", "change-me-in-production")
 
 if TELESCOPE_ENABLED:
     MIDDLEWARE.insert(0, "telescope.middleware.TelescopeMiddleware")
@@ -112,9 +111,25 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 ASGI_APPLICATION = "bazar_market_django.asgi.application"
 
+# Celery
+_redis_host = os.getenv("REDIS_URL", "redis://localhost:6379/0").rsplit("/", 1)[0]
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", f"{_redis_host}/1")
+CELERY_RESULT_BACKEND = CELERY_BROKER_URL
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_BEAT_SCHEDULE = {
+    "cart-abandonment-reminder": {
+        "task": "bot.tasks.task_cart_abandonment_reminders",
+        "schedule": 3600,
+    },
+}
+
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [os.getenv("REDIS_URL", "redis://localhost:6379/0")],
+        },
     }
 }
 

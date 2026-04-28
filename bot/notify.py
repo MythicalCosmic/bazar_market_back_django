@@ -4,58 +4,47 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def notify_admins_new_order(order):
-    """Send Telegram notification to all admin users about a new order.
-    Called from Django (sync context) after order placement."""
-    from base.models import User
-
-    admin_tg_ids = list(
-        User.objects.filter(
-            role__in=["admin", "manager"],
-            telegram_id__isnull=False,
-            is_active=True,
-            deleted_at__isnull=True,
-        ).values_list("telegram_id", flat=True)
-    )
-
-    if not admin_tg_ids:
-        return
-
-    items = list(order.items.all())
-    text = _format_order(order, items)
-
-    from bot.keyboards import accept_print_keyboard
-    keyboard = accept_print_keyboard(order.id)
-
-    async def _send():
-        from bot.bot_instance import get_bot
-        b = get_bot()
-        for tg_id in admin_tg_ids:
-            try:
-                await b.send_message(tg_id, text, reply_markup=keyboard)
-            except Exception as e:
-                logger.warning(f"Failed to notify admin {tg_id}: {e}")
-
+def _send_async(coro):
+    """Bridge sync Django context to async bot sending."""
     try:
         loop = asyncio.get_running_loop()
-        loop.create_task(_send())
+        loop.create_task(coro)
     except RuntimeError:
-        asyncio.run(_send())
+        asyncio.run(coro)
 
 
-def _format_order(order, items) -> str:
-    item_lines = []
-    for item in items:
-        qty = f"{item.quantity:g}"
-        item_lines.append(f"  • {item.product_name} — {qty} {item.unit} x {item.unit_price:,.0f} = {item.total:,.0f}")
+def _via_celery(task, *args):
+    """Try Celery .delay(), fall back to direct execution."""
+    try:
+        task.delay(*args)
+    except Exception:
+        # Celery not available — run the task function directly (sync)
+        try:
+            task(*args)
+        except Exception as e:
+            logger.warning(f"Direct task execution failed: {e}")
 
-    from bot.texts import TEXTS
-    return TEXTS["new_order"].format(
-        order_number=order.order_number,
-        customer=f"{order.user.first_name} {order.user.last_name}".strip(),
-        phone=order.user.phone or "—",
-        address=order.delivery_address_text or "—",
-        total=f"{order.total:,.0f}",
-        payment=order.get_payment_method_display() if order.payment_method else "—",
-        items="\n".join(item_lines),
-    )
+
+def notify_admins_new_order(order):
+    from bot.tasks import task_notify_admins_new_order
+    _via_celery(task_notify_admins_new_order, order.id)
+
+
+def notify_customer_status_change(order):
+    from bot.tasks import task_notify_customer_status
+    _via_celery(task_notify_customer_status, order.id)
+
+
+def notify_customers_new_banner(banner):
+    from bot.tasks import task_broadcast_banner
+    _via_celery(task_broadcast_banner, banner.id)
+
+
+def notify_cart_price_change(product, old_price, new_price):
+    from bot.tasks import task_notify_cart_price_change
+    _via_celery(task_notify_cart_price_change, product.id, str(old_price), str(new_price))
+
+
+def notify_referral_reward(referrer, coupon_code):
+    from bot.tasks import task_notify_referral_reward
+    _via_celery(task_notify_referral_reward, referrer.id, coupon_code)

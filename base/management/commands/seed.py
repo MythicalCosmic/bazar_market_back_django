@@ -59,6 +59,7 @@ class Command(BaseCommand):
         all_perms = {
             "manage_users": ("Manage users", "users"),
             "manage_roles": ("Manage roles", "users"),
+            "manage_reviews": ("Manage Reviews", "reviews"),
             "manage_categories": ("Manage categories", "catalog"),
             "manage_products": ("Manage products", "catalog"),
             "manage_banners": ("Manage banners", "catalog"),
@@ -72,6 +73,8 @@ class Command(BaseCommand):
             "manage_analytics": ("Manage analytics", "system"),
             "view_users": ("View users", "users"),
             "view_categories": ("View categories", "catalog"),
+            "view_reviews": ("View reviews", "reviews"),
+
             "view_products": ("View products", "catalog"),
             "view_orders": ("View orders", "orders"),
             "view_payments": ("View payments", "orders"),
@@ -338,7 +341,8 @@ class Command(BaseCommand):
             {"key": "min_order_total", "value": "30000", "type": "int", "description": "Minimum order total in som"},
             {"key": "max_delivery_distance_km", "value": "15", "type": "int", "description": "Max delivery radius"},
             {"key": "orders_enabled", "value": "true", "type": "bool", "description": "Accept new orders"},
-            {"key": "default_delivery_fee", "value": "10000", "type": "int", "description": "Default delivery fee in som"},
+            {"key": "delivery_fee", "value": "9000", "type": "int", "description": "Flat delivery fee in som"},
+            {"key": "bot_username", "value": "BazarMarketBot", "type": "string", "description": "Telegram bot username (without @)"},
         ]
 
         created = 0

@@ -419,8 +419,7 @@ class Order(TimestampMixin):
 
     class PaymentMethod(models.TextChoices):
         CASH = "cash", "Cash"
-        CLICK = "click", "Click"
-        PAYME = "payme", "Payme"
+        CARD = "card", "Card"
 
     class PaymentStatus(models.TextChoices):
         UNPAID = "unpaid", "Unpaid"
@@ -452,6 +451,7 @@ class Order(TimestampMixin):
     delivery_fee = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     discount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     total = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0)])
+    total_vat = models.DecimalField(max_digits=12, decimal_places=2, default=0)
 
     # Payment
     payment_method = models.CharField(
@@ -526,6 +526,7 @@ class OrderItem(models.Model):
     unit_price = models.DecimalField(max_digits=12, decimal_places=2)
     quantity = models.DecimalField(max_digits=8, decimal_places=3)
     total = models.DecimalField(max_digits=12, decimal_places=2, help_text="unit_price × quantity")
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -569,9 +570,8 @@ class OrderStatusLog(models.Model):
 
 class Payment(TimestampMixin):
     class Method(models.TextChoices):
-        CLICK = "click", "Click"
-        PAYME = "payme", "Payme"
         CASH = "cash", "Cash"
+        CARD = "card", "Card"
 
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
@@ -583,27 +583,14 @@ class Payment(TimestampMixin):
     uuid = models.UUIDField(unique=True, default=uuid.uuid4, editable=False)
     order = models.ForeignKey(Order, on_delete=models.PROTECT, related_name="payments")
     method = models.CharField(max_length=20, choices=Method.choices)
-    external_id = models.CharField(
-        max_length=255,
-        blank=True,
-        default="",
-        help_text="Transaction ID from Click/Payme",
-        db_index=True,
-    )
     amount = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0)])
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
-    provider_data = models.JSONField(
-        null=True,
-        blank=True,
-        help_text="Raw provider response for debugging",
-    )
     paid_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         db_table = "payments"
         indexes = [
             models.Index(fields=["order_id"], name="idx_payments_order"),
-            models.Index(fields=["external_id"], name="idx_payments_external"),
             models.Index(fields=["status"], name="idx_payments_status"),
             models.Index(fields=["method", "status"], name="idx_payments_method_status"),
         ]
@@ -997,3 +984,5 @@ class Setting(models.Model):
 
     def __str__(self) -> str:
         return f"{self.key} = {self.value[:50]}"
+
+

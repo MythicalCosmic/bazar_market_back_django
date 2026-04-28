@@ -34,7 +34,6 @@ def _serialize_payment(p) -> dict:
         "id": p.id,
         "uuid": str(p.uuid),
         "method": p.method,
-        "external_id": p.external_id,
         "amount": str(p.amount),
         "status": p.status,
         "paid_at": p.paid_at.isoformat() if p.paid_at else None,
@@ -57,9 +56,7 @@ def _serialize_payment(p) -> dict:
 
 
 def _serialize_payment_detail(p) -> dict:
-    data = _serialize_payment(p)
-    data["provider_data"] = p.provider_data
-    return data
+    return _serialize_payment(p)
 
 
 @csrf_exempt

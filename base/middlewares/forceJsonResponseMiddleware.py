@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.http import JsonResponse
 from django.utils.deprecation import MiddlewareMixin
 
@@ -19,8 +20,10 @@ class JSONResponseMiddleware(MiddlewareMixin):
                 status=exception.status,
             )
 
+        import logging
+        logging.getLogger(__name__).exception(f"Unhandled exception on {request.path}: {exception}")
         return JsonResponse(
-            {"success": False, "message": "Internal server error"},
+            {"success": False, "message": str(exception) if settings.DEBUG else "Internal server error"},
             status=500,
         )
 
