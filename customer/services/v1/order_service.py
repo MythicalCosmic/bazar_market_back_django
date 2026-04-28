@@ -10,17 +10,15 @@ from base.interfaces.product import IProductRepository
 from base.interfaces.order import IOrderRepository, IOrderItemRepository, IOrderStatusLogRepository
 from base.interfaces.coupon import ICouponRepository, ICouponUsageRepository
 from base.interfaces.address import IAddressRepository
-from base.interfaces.delivery import IDeliveryZoneRepository
 from base.interfaces.setting import ISettingRepository
 from base.interfaces.discount import IDiscountRepository
 from base.exceptions import NotFoundError, ValidationError
 from base.models import Order, Discount
 from customer.dto.order import PlaceOrderDTO
 from customer.services.v1.coupon_service import CustomerCouponService
-from customer.services.v1.delivery_zone_service import CustomerDeliveryZoneService
 
 
-VALID_PAYMENT_METHODS = {"cash", "click", "payme"}
+VALID_PAYMENT_METHODS = {"cash", "card"}
 
 
 class CustomerOrderService:
@@ -95,18 +93,8 @@ class CustomerOrderService:
             for ci in cart_items
         )
 
-        # 6. Delivery fee
-        zone_svc = CustomerDeliveryZoneService(self.zone_repo)
-        zone = zone_svc.get_zone_for_point(address.latitude, address.longitude)
-        if not zone:
-            raise ValidationError("Delivery is not available for this address")
-
-        delivery_fee = zone.delivery_fee
-
-        if zone.min_order and subtotal < zone.min_order:
-            raise ValidationError(f"Minimum order for this area is {zone.min_order}")
-
-        # 7. Global minimum order
+        # 6. Delivery fee (from settings) & global minimum order
+        delivery_fee = Decimal(str(self.setting_repo.get_value("delivery_fee", "0")))
         global_min = Decimal(str(self.setting_repo.get_value("min_order_total", "0")))
         if global_min > 0 and subtotal < global_min:
             raise ValidationError(f"Minimum order total is {global_min}")

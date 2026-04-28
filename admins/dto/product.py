@@ -50,7 +50,6 @@ class UpdateProductDTO:
     sort_order: object = UNSET
     is_active: object = UNSET
     is_featured: object = UNSET
-
     def to_dict(self) -> dict:
         return {
             f.name: getattr(self, f.name)

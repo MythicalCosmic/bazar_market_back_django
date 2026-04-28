@@ -44,7 +44,7 @@ class PaymentService:
 
         if query:
             qs = self.payment_repo.search(
-                qs, query, ["external_id", "order__order_number", "order__user__phone"]
+                qs, query, ["order__order_number", "order__user__phone"]
             )
         if status:
             qs = qs.filter(status=status)

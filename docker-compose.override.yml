@@ -1,0 +1,22 @@
+# Dev overrides — auto-loaded by `docker compose up`
+# Adds hot-reload: code changes apply instantly, no rebuild needed.
+# For production, run: docker compose -f docker-compose.yml up
+services:
+  web:
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+      - /app/.venv
+    environment:
+      - DEBUG=1
+      - TELESCOPE_ENABLED=1
+
+  bot:
+    volumes:
+      - .:/app
+      - /app/.venv
+
+  scheduler:
+    volumes:
+      - .:/app
+      - /app/.venv

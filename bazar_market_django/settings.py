@@ -42,6 +42,7 @@ WEBAPP_URL = os.getenv("WEBAPP_URL", "")
 
 # Thermal receipt printer
 PRINTER_ENABLED = os.getenv("PRINTER_ENABLED", "0") == "1"
+
 PRINTER_PATH = os.getenv("PRINTER_PATH", "/dev/usb/lp0")
 
 if TELESCOPE_ENABLED:
