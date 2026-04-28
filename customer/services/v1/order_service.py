@@ -32,7 +32,6 @@ class CustomerOrderService:
         coupon_repository: ICouponRepository,
         coupon_usage_repository: ICouponUsageRepository,
         address_repository: IAddressRepository,
-        delivery_zone_repository: IDeliveryZoneRepository,
         setting_repository: ISettingRepository,
         discount_repository: IDiscountRepository,
     ):
@@ -44,7 +43,6 @@ class CustomerOrderService:
         self.coupon_repo = coupon_repository
         self.usage_repo = coupon_usage_repository
         self.address_repo = address_repository
-        self.zone_repo = delivery_zone_repository
         self.setting_repo = setting_repository
         self.discount_repo = discount_repository
 

@@ -7,29 +7,26 @@ from celery import shared_task
 logger = logging.getLogger(__name__)
 
 
-def _run_async(coro):
-    """Run an async coroutine from a sync Celery task."""
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            import concurrent.futures
-            with concurrent.futures.ThreadPoolExecutor() as pool:
-                return pool.submit(asyncio.run, coro).result()
-        return loop.run_until_complete(coro)
-    except RuntimeError:
-        return asyncio.run(coro)
+def _make_bot():
+    from django.conf import settings
+    from aiogram import Bot
+    from aiogram.client.default import DefaultBotProperties
+    from aiogram.enums import ParseMode
+    return Bot(
+        token=settings.BOT_TOKEN,
+        default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+    )
 
 
-async def _send_message(tg_id, text, **kwargs):
-    from bot.bot_instance import get_bot
-    bot = get_bot()
-    await bot.send_message(tg_id, text, **kwargs)
-
-
-async def _send_photo(tg_id, photo, caption=None):
-    from bot.bot_instance import get_bot
-    bot = get_bot()
-    await bot.send_photo(tg_id, photo=photo, caption=caption)
+def _run_async(coro_fn):
+    """Run an async function that receives a fresh bot. Closes session after."""
+    async def _wrapper():
+        bot = _make_bot()
+        try:
+            await coro_fn(bot)
+        finally:
+            await bot.session.close()
+    asyncio.run(_wrapper())
 
 
 # ── Order status notification ──────────────────────────────────
@@ -37,8 +34,6 @@ async def _send_photo(tg_id, photo, caption=None):
 @shared_task(bind=True, max_retries=3, default_retry_delay=10)
 def task_notify_customer_status(self, order_id):
     try:
-        import django
-        django.setup()
         from base.models import Order
         from bot.texts import status_label
 
@@ -83,7 +78,11 @@ def task_notify_customer_status(self, order_id):
             lines.append(f"\n📝 {lbl_reason}: {order.cancel_reason}")
 
         text = "\n".join(lines)
-        _run_async(_send_message(tg_id, text))
+
+        async def _send(bot):
+            await bot.send_message(tg_id, text)
+
+        _run_async(_send)
 
     except Exception as exc:
         logger.warning(f"task_notify_customer_status failed: {exc}")
@@ -95,8 +94,6 @@ def task_notify_customer_status(self, order_id):
 @shared_task(bind=True, max_retries=3, default_retry_delay=10)
 def task_notify_admins_new_order(self, order_id):
     try:
-        import django
-        django.setup()
         from base.models import Order, User
         from bot.keyboards import accept_print_keyboard
         from bot.texts import TEXTS
@@ -134,16 +131,14 @@ def task_notify_admins_new_order(self, order_id):
 
         keyboard = accept_print_keyboard(order.id)
 
-        async def _send_all():
-            from bot.bot_instance import get_bot
-            bot = get_bot()
+        async def _send(bot):
             for tg_id in admin_tg_ids:
                 try:
                     await bot.send_message(tg_id, text, reply_markup=keyboard)
                 except Exception as e:
                     logger.warning(f"Failed to notify admin {tg_id}: {e}")
 
-        _run_async(_send_all())
+        _run_async(_send)
 
     except Exception as exc:
         logger.warning(f"task_notify_admins_new_order failed: {exc}")
@@ -155,8 +150,6 @@ def task_notify_admins_new_order(self, order_id):
 @shared_task(bind=True, max_retries=2, default_retry_delay=15)
 def task_broadcast_banner(self, banner_id):
     try:
-        import django
-        django.setup()
         from base.models import Banner, User
 
         banner = Banner.objects.filter(pk=banner_id).first()
@@ -178,9 +171,7 @@ def task_broadcast_banner(self, banner_id):
         caption = f"📰 <b>{title}</b>" if title else None
         image = banner.image or ""
 
-        async def _send_all():
-            from bot.bot_instance import get_bot
-            bot = get_bot()
+        async def _send(bot):
             for tg_id in tg_ids:
                 try:
                     if image:
@@ -190,7 +181,7 @@ def task_broadcast_banner(self, banner_id):
                 except Exception as e:
                     logger.warning(f"Failed to send banner to {tg_id}: {e}")
 
-        _run_async(_send_all())
+        _run_async(_send)
 
     except Exception as exc:
         logger.warning(f"task_broadcast_banner failed: {exc}")
@@ -202,12 +193,11 @@ def task_broadcast_banner(self, banner_id):
 @shared_task(bind=True, max_retries=2, default_retry_delay=10)
 def task_notify_cart_price_change(self, product_id, old_price_str, new_price_str):
     try:
-        import django
-        django.setup()
         from base.models import CartItem, Product
 
         product = Product.objects.filter(pk=product_id).first()
         if not product:
+            logger.info(f"cart_price_change: product {product_id} not found")
             return
 
         old_price = Decimal(old_price_str)
@@ -218,14 +208,14 @@ def task_notify_cart_price_change(self, product_id, old_price_str, new_price_str
             CartItem.objects.filter(product_id=product_id)
             .select_related("user")
         )
+        logger.info(f"cart_price_change: product={product_id}, cart_users={len(cart_users)}, old={old_price}, new={new_price}")
         if not cart_users:
             return
 
-        async def _send_all():
-            from bot.bot_instance import get_bot
-            bot = get_bot()
+        async def _send(bot):
             for ci in cart_users:
                 tg_id = ci.user.telegram_id
+                logger.info(f"cart_price_change: user={ci.user.id}, tg_id={tg_id}")
                 if not tg_id:
                     continue
                 lang = ci.user.language or "uz"
@@ -246,7 +236,7 @@ def task_notify_cart_price_change(self, product_id, old_price_str, new_price_str
                 except Exception as e:
                     logger.warning(f"Failed to notify cart user {tg_id}: {e}")
 
-        _run_async(_send_all())
+        _run_async(_send)
 
     except Exception as exc:
         logger.warning(f"task_notify_cart_price_change failed: {exc}")
@@ -258,8 +248,6 @@ def task_notify_cart_price_change(self, product_id, old_price_str, new_price_str
 @shared_task(bind=True, max_retries=3, default_retry_delay=10)
 def task_notify_referral_reward(self, user_id, coupon_code):
     try:
-        import django
-        django.setup()
         from base.models import User
 
         user = User.objects.filter(pk=user_id).first()
@@ -282,7 +270,10 @@ def task_notify_referral_reward(self, user_id, coupon_code):
             f"<i>{footer}</i>"
         )
 
-        _run_async(_send_message(user.telegram_id, text))
+        async def _send(bot):
+            await bot.send_message(user.telegram_id, text)
+
+        _run_async(_send)
 
     except Exception as exc:
         logger.warning(f"task_notify_referral_reward failed: {exc}")
@@ -293,8 +284,6 @@ def task_notify_referral_reward(self, user_id, coupon_code):
 
 @shared_task
 def task_cart_abandonment_reminders():
-    import django
-    django.setup()
     from django.core.cache import cache
     from django.utils import timezone
     from datetime import timedelta
@@ -305,25 +294,31 @@ def task_cart_abandonment_reminders():
     hours = int(setting_repo.get_value("cart_reminder_hours", "24"))
     cutoff = timezone.now() - timedelta(hours=hours)
 
-    # Users with old cart items who haven't been reminded recently
-    user_ids = (
+    user_ids = list(
         CartItem.objects.filter(added_at__lte=cutoff)
         .values_list("user_id", flat=True)
         .distinct()
     )
 
-    async def _send_all():
-        from bot.bot_instance import get_bot
-        bot = get_bot()
-        for uid in user_ids:
-            cache_key = f"cart_reminder:{uid}"
-            if cache.get(cache_key):
-                continue
+    if not user_ids:
+        return
 
-            user = await asyncio.to_thread(
-                User.objects.filter(pk=uid, telegram_id__isnull=False, is_active=True, deleted_at__isnull=True).first
-            )
-            if not user or not user.telegram_id:
+    users = list(
+        User.objects.filter(
+            pk__in=user_ids,
+            telegram_id__isnull=False,
+            is_active=True,
+            deleted_at__isnull=True,
+        )
+    )
+
+    if not users:
+        return
+
+    async def _send(bot):
+        for user in users:
+            cache_key = f"cart_reminder:{user.id}"
+            if cache.get(cache_key):
                 continue
 
             lang = user.language or "uz"
@@ -335,8 +330,8 @@ def task_cart_abandonment_reminders():
 
             try:
                 await bot.send_message(user.telegram_id, text)
-                await asyncio.to_thread(cache.set, cache_key, True, hours * 3600)
+                cache.set(cache_key, True, hours * 3600)
             except Exception as e:
                 logger.warning(f"Failed to send cart reminder to {user.telegram_id}: {e}")
 
-    _run_async(_send_all())
+    _run_async(_send)

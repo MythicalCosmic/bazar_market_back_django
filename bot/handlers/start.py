@@ -31,6 +31,7 @@ async def cmd_start(message: Message, state: FSMContext, django_user, lang: str,
     referral_code = deep_link[4:] if deep_link and deep_link.startswith("ref_") else None
 
     # Auto-register new Telegram users
+    is_new_user = False
     if not django_user:
         from base.models import User
         django_user = await sync_to_async(User.objects.create)(
@@ -40,6 +41,7 @@ async def cmd_start(message: Message, state: FSMContext, django_user, lang: str,
             role=User.Role.CLIENT,
             language="uz",
         )
+        is_new_user = True
 
     # User exists with language set — skip to main menu
     if django_user.language:
@@ -47,7 +49,8 @@ async def cmd_start(message: Message, state: FSMContext, django_user, lang: str,
         await state.set_state(MainMenu.active)
         is_admin = django_user.role in ADMIN_ROLES
 
-        if referral_code:
+        # Only apply referral for newly registered users
+        if referral_code and is_new_user:
             await _try_apply_referral(message, django_user, referral_code, lang)
 
         await message.answer(
@@ -57,7 +60,7 @@ async def cmd_start(message: Message, state: FSMContext, django_user, lang: str,
         return
 
     # No language set — store referral code in FSM, ask for language
-    if referral_code:
+    if referral_code and is_new_user:
         await state.update_data(referral_code=referral_code)
 
     await state.set_state(LanguageSelection.choosing)
