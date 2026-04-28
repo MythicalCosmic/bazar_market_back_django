@@ -41,7 +41,7 @@ def send_otp(phone: str) -> dict:
             settings.DEVSMS_URL,
             json={
                 "phone": phone,
-                "text": message,
+                "message": message,
                 "shablon_id": 313,
             },
             headers={
