@@ -36,14 +36,13 @@ def send_otp(phone: str) -> dict:
     cache.set(_cooldown_key(phone), True, timeout=COOLDOWN)
 
     try:
+        message = f"Bazar market ilovasi uchun tasdiqlash kodingiz: {code}. Kod 2 daqiqa amal qiladi."
         resp = requests.post(
             settings.DEVSMS_URL,
             json={
                 "phone": phone,
-                "type": "universal_otp",
-                "template_type": 3,
-                "service_name": "Bazar Market",
-                "otp_code": code,
+                "text": message,
+                "shablon_id": 313,
             },
             headers={
                 "Authorization": f"Bearer {settings.DEVSMS_TOKEN}",
