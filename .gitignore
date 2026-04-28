@@ -11,3 +11,14 @@ wheels/
 .env
 
 *.sqlite3
+
+# Celery beat schedule
+celerybeat-schedule*
+
+# File downloader data
+file_downloader/data/
+file_downloader/.venv/
+
+# Media uploads
+media/
+staticfiles/

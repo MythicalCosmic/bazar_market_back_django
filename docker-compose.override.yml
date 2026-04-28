@@ -25,3 +25,9 @@ services:
     volumes:
       - .:/app
       - /app/.venv
+
+  file-downloader:
+    command: uvicorn main:app --host 0.0.0.0 --port 6767 --reload
+    volumes:
+      - ./file_downloader:/app
+      - /app/.venv
