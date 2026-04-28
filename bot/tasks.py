@@ -85,7 +85,7 @@ def task_notify_customer_status(self, order_id):
         _run_async(_send)
 
     except Exception as exc:
-        logger.warning(f"task_notify_customer_status failed: {exc}")
+        logger.exception(f"task_notify_customer_status failed for order {order_id}")
         raise self.retry(exc=exc)
 
 

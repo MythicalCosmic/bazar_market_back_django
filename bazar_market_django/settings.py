@@ -40,10 +40,8 @@ OTP_EXPIRY_SECONDS = 120  # 2 minutes
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 WEBAPP_URL = os.getenv("WEBAPP_URL", "")
 
-# Thermal receipt printer
-PRINTER_ENABLED = os.getenv("PRINTER_ENABLED", "0") == "1"
-
-PRINTER_PATH = os.getenv("PRINTER_PATH", "/dev/usb/lp0")
+# Thermal receipt printer (WebSocket-based)
+PRINTER_SECRET = os.getenv("PRINTER_SECRET", "change-me-in-production")
 
 if TELESCOPE_ENABLED:
     MIDDLEWARE.insert(0, "telescope.middleware.TelescopeMiddleware")
@@ -128,7 +126,10 @@ CELERY_BEAT_SCHEDULE = {
 
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [os.getenv("REDIS_URL", "redis://localhost:6379/0")],
+        },
     }
 }
 
