@@ -12,15 +12,18 @@ import os
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'bazar_market_django.settings')
 
 from channels.routing import ProtocolTypeRouter, URLRouter
-from channels.security.websocket import OriginValidator
+from channels.security.websocket import AllowedHostsOriginValidator
 from django.core.asgi import get_asgi_application
 
 from telescope.routing import websocket_urlpatterns as telescope_ws
 from base.printing.routing import websocket_urlpatterns as printer_ws
 
-# Printer WS uses token auth (not origin-based), so no origin check needed.
-# Telescope WS is browser-based, so it uses origin validation.
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
-    "websocket": URLRouter(printer_ws + telescope_ws),
+    "websocket": URLRouter(
+        # Printer WS: token-authenticated, no origin check needed
+        printer_ws
+        # Telescope WS: browser-based, origin validated
+        + telescope_ws
+    ),
 })
