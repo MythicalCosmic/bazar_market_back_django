@@ -7,6 +7,7 @@ requires-python = ">=3.14"
 dependencies = [
     "daphne>=4.2.1",
     "django>=6.0.3",
+    "django-cors-headers>=4.9.0",
     "django-redis>=6.0.0",
     "django-scope>=1.0.1",
     "djangorestframework>=3.17.1",

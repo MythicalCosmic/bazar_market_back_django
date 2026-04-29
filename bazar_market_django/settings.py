@@ -11,6 +11,7 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
 INSTALLED_APPS = [
     "daphne",
+    "corsheaders",
     "telescope",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -22,11 +23,14 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "base.middlewares.responseTimeMiddleware.ResponseTimeMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.middleware.common.CommonMiddleware",
     "base.middlewares.forceJsonResponseMiddleware.JSONResponseMiddleware",
 ]
+
+CORS_ALLOW_ALL_ORIGINS = True
 
 TELESCOPE_ENABLED = os.getenv("TELESCOPE_ENABLED", "0") == "1"
 
