@@ -2,6 +2,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET
 
 from base.container import container
+from base.ratelimit import ratelimit
 from base.responses import success
 from customer.services.v1.banner_service import CustomerBannerService
 
@@ -18,6 +19,7 @@ def _serialize_banner(b) -> dict:
 
 @csrf_exempt
 @require_GET
+@ratelimit(60, per=60)
 def list_banners_view(request):
     svc = container.resolve(CustomerBannerService)
     banners = svc.get_active_banners()

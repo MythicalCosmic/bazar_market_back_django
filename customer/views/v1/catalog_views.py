@@ -2,6 +2,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET
 
 from base.container import container
+from base.ratelimit import ratelimit
 from base.responses import success, not_found, error
 from customer.services.v1.catalog_service import CatalogService
 
@@ -89,6 +90,7 @@ def _serialize_category(c) -> dict:
 
 @csrf_exempt
 @require_GET
+@ratelimit(60, per=60)
 def list_products_view(request):
     try:
         page = int(request.GET.get("page", 1))
@@ -118,6 +120,7 @@ def list_products_view(request):
 
 @csrf_exempt
 @require_GET
+@ratelimit(60, per=60)
 def get_product_view(request, product_id):
     svc = container.resolve(CatalogService)
     product = svc.get_product(product_id)
@@ -128,6 +131,7 @@ def get_product_view(request, product_id):
 
 @csrf_exempt
 @require_GET
+@ratelimit(60, per=60)
 def list_categories_view(request):
     svc = container.resolve(CatalogService)
     categories = svc.list_categories()
@@ -136,6 +140,7 @@ def list_categories_view(request):
 
 @csrf_exempt
 @require_GET
+@ratelimit(60, per=60)
 def category_tree_view(request):
     svc = container.resolve(CatalogService)
     return success(data=svc.get_category_tree())
@@ -143,6 +148,7 @@ def category_tree_view(request):
 
 @csrf_exempt
 @require_GET
+@ratelimit(60, per=60)
 def featured_products_view(request):
     try:
         page = int(request.GET.get("page", 1))
@@ -158,6 +164,7 @@ def featured_products_view(request):
 
 @csrf_exempt
 @require_GET
+@ratelimit(60, per=60)
 def popular_products_view(request):
     try:
         page = int(request.GET.get("page", 1))
@@ -173,6 +180,7 @@ def popular_products_view(request):
 
 @csrf_exempt
 @require_GET
+@ratelimit(30, per=60)
 def search_products_view(request):
     query = request.GET.get("q", "").strip()
     if not query:
