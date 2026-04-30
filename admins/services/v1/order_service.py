@@ -6,6 +6,7 @@ from django.db.models.functions import TruncDate, ExtractHour
 from django.utils import timezone
 
 from base.interfaces.order import IOrderRepository, IOrderItemRepository, IOrderStatusLogRepository
+from base.interfaces.payment import IPaymentRepository
 from base.interfaces.product import IProductRepository
 from base.interfaces.setting import ISettingRepository
 from base.exceptions import NotFoundError, ValidationError
@@ -40,12 +41,14 @@ class OrderService:
         order_status_log_repository: IOrderStatusLogRepository,
         product_repository: IProductRepository,
         setting_repository: ISettingRepository,
+        payment_repository: IPaymentRepository,
     ):
         self.order_repo = order_repository
         self.item_repo = order_item_repository
         self.log_repo = order_status_log_repository
         self.product_repo = product_repository
         self.setting_repo = setting_repository
+        self.payment_repo = payment_repository
 
     def get_all(
         self,
@@ -228,16 +231,37 @@ class OrderService:
 
         return {"order_id": order.id, "message": "Courier unassigned"}
 
+    @transaction.atomic
     def update_payment_status(self, order_id: int, payment_status: str, admin_user) -> dict:
         if payment_status not in VALID_PAYMENT_STATUSES:
             raise ValidationError(f"Invalid payment status: {payment_status}")
 
-        order = self.order_repo.get_by_id(order_id)
+        order = Order.objects.select_for_update().filter(pk=order_id).first()
         if not order:
             raise NotFoundError("Order not found")
 
         old_ps = order.payment_status
+        if old_ps == payment_status:
+            raise ValidationError(f"Payment status is already '{payment_status}'")
+
         self.order_repo.update_payment_status(order, payment_status)
+
+        # Create Payment record when marked as paid
+        if payment_status == "paid":
+            method = order.payment_method or "cash"
+            self.payment_repo.create(
+                order=order,
+                method=method,
+                amount=order.total,
+                status="completed",
+                paid_at=timezone.now(),
+            )
+
+        # Mark existing payment as refunded
+        if payment_status == "refunded":
+            existing = self.payment_repo.get_by_order(order_id).filter(status="completed").first()
+            if existing:
+                self.payment_repo.mark_refunded(existing)
 
         self.log_repo.log_transition(
             order_id=order.id,
