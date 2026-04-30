@@ -64,7 +64,7 @@ from customer.views.v1.referral_views import (
 )
 from customer.views.v1.coupon_views import validate_coupon_view
 from customer.views.v1.banner_views import list_banners_view
-from customer.views.v1.delivery_zone_views import check_delivery_view
+from customer.views.v1.delivery_zone_views import check_delivery_view, delivery_info_view
 
 app_name = "customer"
 
@@ -137,4 +137,5 @@ urlpatterns = [
     # ── Public ──
     path("banners", list_banners_view, name="banners"),
     path("delivery/check", check_delivery_view, name="delivery-check"),
+    path("delivery/info", delivery_info_view, name="delivery-info"),
 ]

@@ -28,3 +28,31 @@ def check_delivery_view(request):
     svc = container.resolve(CustomerDeliveryZoneService)
     result = svc.check_delivery(lat_dec, lng_dec)
     return success(data=result)
+
+
+@csrf_exempt
+@require_GET
+@ratelimit(60, per=60)
+def delivery_info_view(request):
+    from base.models import DeliveryZone, Setting
+
+    zones = DeliveryZone.objects.filter(is_active=True).order_by("sort_order")
+    zone_list = [
+        {
+            "id": z.id,
+            "name": z.name,
+            "delivery_fee": str(z.delivery_fee),
+            "min_order": str(z.min_order),
+            "estimated_minutes": z.estimated_minutes,
+        }
+        for z in zones
+    ]
+
+    default_fee = Setting.objects.filter(pk="default_delivery_fee").first()
+    min_order = Setting.objects.filter(pk="min_order_total").first()
+
+    return success(data={
+        "default_delivery_fee": default_fee.value if default_fee else "0",
+        "min_order_total": min_order.value if min_order else "0",
+        "zones": zone_list,
+    })
