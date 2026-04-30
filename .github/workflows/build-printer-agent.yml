@@ -1,0 +1,43 @@
+name: Build Print Agent
+
+on:
+  push:
+    paths:
+      - 'print_agent/**'
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: BazarMarketPrinter.exe
+          - os: ubuntu-latest
+            artifact: BazarMarketPrinter
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install pyinstaller websockets python-escpos pyusb pillow
+          pip install pywin32 || true
+        shell: bash
+
+      - name: Build
+        working-directory: print_agent
+        run: pyinstaller agent.spec --clean
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: print_agent/dist/${{ matrix.artifact }}
