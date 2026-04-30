@@ -1,0 +1,6 @@
+{
+  "server": "wss://api.bazarmarket.org/ws/printer/",
+  "token": "your-printer-secret-here",
+  "printer_id": "default",
+  "printer": null
+}
