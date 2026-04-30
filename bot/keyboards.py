@@ -16,7 +16,7 @@ def language_keyboard() -> InlineKeyboardMarkup:
     ])
 
 
-def main_menu_keyboard(lang: str, is_admin: bool = False) -> ReplyKeyboardMarkup:
+def main_menu_keyboard(lang: str) -> ReplyKeyboardMarkup:
     buttons = []
 
     webapp_url = getattr(settings, "WEBAPP_URL", "")
@@ -26,30 +26,9 @@ def main_menu_keyboard(lang: str, is_admin: bool = False) -> ReplyKeyboardMarkup
             web_app=WebAppInfo(url=webapp_url),
         )])
 
-    buttons.append([
-        KeyboardButton(text=t("my_orders", lang)),
-        KeyboardButton(text=t("favorites", lang)),
-    ])
-    buttons.append([
-        KeyboardButton(text=t("referral", lang)),
-        KeyboardButton(text=t("discounts", lang)),
-    ])
-    buttons.append([
-        KeyboardButton(text=t("news", lang)),
-    ])
-
-    if is_admin:
-        buttons.append([KeyboardButton(text=t("admin_panel", lang))])
-
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
 
 
-def admin_panel_keyboard(lang: str) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=t("admin_stats", lang), callback_data="admin_stats")],
-        [InlineKeyboardButton(text=t("admin_orders", lang), callback_data="admin_orders")],
-        [InlineKeyboardButton(text=t("admin_banners", lang), callback_data="admin_banners")],
-    ])
 
 
 def order_actions_keyboard(order_id: int, status: str, payment_status: str) -> InlineKeyboardMarkup:

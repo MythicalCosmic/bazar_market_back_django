@@ -10,8 +10,6 @@ from bot.keyboards import language_keyboard, main_menu_keyboard
 
 router = Router()
 
-ADMIN_ROLES = {"admin", "manager"}
-
 
 async def _try_apply_referral(message: Message, django_user, code: str, lang: str):
     try:
@@ -47,7 +45,6 @@ async def cmd_start(message: Message, state: FSMContext, django_user, lang: str,
     if django_user.language:
         lang = django_user.language
         await state.set_state(MainMenu.active)
-        is_admin = django_user.role in ADMIN_ROLES
 
         # Only apply referral for newly registered users
         if referral_code and is_new_user:
@@ -55,7 +52,7 @@ async def cmd_start(message: Message, state: FSMContext, django_user, lang: str,
 
         await message.answer(
             t("welcome", lang),
-            reply_markup=main_menu_keyboard(lang, is_admin=is_admin),
+            reply_markup=main_menu_keyboard(lang),
         )
         return
 
@@ -88,7 +85,6 @@ async def language_chosen(callback: CallbackQuery, state: FSMContext, django_use
         )(language=lang)
 
     await state.set_state(MainMenu.active)
-    is_admin = django_user and django_user.role in ADMIN_ROLES
 
     # Apply referral if stored from deep link
     referral_code = data.get("referral_code")
@@ -98,7 +94,7 @@ async def language_chosen(callback: CallbackQuery, state: FSMContext, django_use
     await callback.message.delete()
     await callback.message.answer(
         t("welcome", lang),
-        reply_markup=main_menu_keyboard(lang, is_admin=is_admin),
+        reply_markup=main_menu_keyboard(lang),
     )
     await callback.answer()
 

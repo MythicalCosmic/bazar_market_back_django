@@ -8,6 +8,7 @@ from django.views.decorators.http import require_GET, require_POST, require_http
 from admins.dto.product import CreateProductDTO, UpdateProductDTO
 from admins.services.v1.product_service import ProductService
 from base.container import container
+from base.discount_calculator import apply_discounts_bulk, apply_discount_to_product
 from base.permissions import require_permission, P
 from base.responses import success, error, created, not_found
 
@@ -61,6 +62,12 @@ def _serialize_product(p) -> dict:
     }
     if hasattr(p, "primary_image"):
         data["primary_image"] = p.primary_image
+    if hasattr(p, "_discount_info") and p._discount_info:
+        data["discount"] = p._discount_info
+        data["discounted_price"] = p._discount_info["discounted_price"]
+    else:
+        data["discount"] = None
+        data["discounted_price"] = str(p.price)
     return data
 
 
@@ -91,6 +98,12 @@ def _serialize_product_detail(p) -> dict:
             }
             for d in p._current_discounts
         ]
+    if hasattr(p, "_discount_info") and p._discount_info:
+        data["applied_discount"] = p._discount_info
+        data["discounted_price"] = p._discount_info["discounted_price"]
+    else:
+        data["applied_discount"] = None
+        data["discounted_price"] = str(p.price)
     return data
 
 
@@ -122,6 +135,7 @@ def list_products_view(request):
         page=page,
         per_page=per_page,
     )
+    apply_discounts_bulk(result["items"])
     result["items"] = [_serialize_product(p) for p in result["items"]]
     return success(data=result)
 
@@ -134,6 +148,7 @@ def get_product_view(request, product_id):
     product = svc.get_by_id(product_id)
     if not product:
         return not_found("Product not found")
+    apply_discount_to_product(product)
     return success(data=_serialize_product_detail(product))
 
 
