@@ -220,10 +220,16 @@ class ProductService:
         if "unit" in data and data["unit"] not in VALID_UNITS:
             raise ValidationError(f"Invalid unit. Must be one of: {', '.join(VALID_UNITS)}")
 
-        if "sku" in data and data["sku"] and data["sku"] != product.sku:
+        # Normalize empty strings to None so unique constraints allow multiple blanks
+        if "sku" in data:
+            data["sku"] = data["sku"] or None
+        if "barcode" in data:
+            data["barcode"] = data["barcode"] or None
+
+        if data.get("sku") and data["sku"] != product.sku:
             if self.product_repo.exists(sku=data["sku"]):
                 raise ValidationError("SKU already exists")
-        if "barcode" in data and data["barcode"] and data["barcode"] != product.barcode:
+        if data.get("barcode") and data["barcode"] != product.barcode:
             if self.product_repo.exists(barcode=data["barcode"]):
                 raise ValidationError("Barcode already exists")
 
