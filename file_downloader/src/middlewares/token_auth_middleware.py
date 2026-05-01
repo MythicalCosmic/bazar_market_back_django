@@ -25,7 +25,7 @@ class TokenAuthMiddleware:
             await self.app(scope, receive, send)
             return
 
-        if scope["path"] in self.EXEMPT_PATHS:
+        if scope["path"] in self.EXEMPT_PATHS or scope["method"] == "OPTIONS":
             await self.app(scope, receive, send)
             return
 
