@@ -71,6 +71,7 @@ class Command(BaseCommand):
             "manage_payments": ("Manage payments", "orders"),
             "manage_notifications": ("Manage notifications", "system"),
             "manage_analytics": ("Manage analytics", "system"),
+            "manage_referral_rewards": ("Manage referral rewards", "referrals"),
             "view_users": ("View users", "users"),
             "view_categories": ("View categories", "catalog"),
             "view_reviews": ("View reviews", "reviews"),
