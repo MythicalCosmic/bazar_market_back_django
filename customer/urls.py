@@ -62,6 +62,7 @@ from customer.views.v1.referral_views import (
     my_referrals_list_view,
     apply_referral_view,
 )
+from customer.views.v1.reward_views import my_rewards_view
 from customer.views.v1.coupon_views import validate_coupon_view
 from customer.views.v1.banner_views import list_banners_view
 from customer.views.v1.delivery_zone_views import check_delivery_view, delivery_info_view
@@ -130,6 +131,9 @@ urlpatterns = [
     path("referral", my_referral_view, name="referral"),
     path("referral/list", my_referrals_list_view, name="referral-list"),
     path("referral/apply", apply_referral_view, name="referral-apply"),
+
+    # ── Rewards ──
+    path("rewards", my_rewards_view, name="rewards"),
 
     # ── Coupons ──
     path("coupon/validate", validate_coupon_view, name="coupon-validate"),

@@ -23,6 +23,7 @@ from base.interfaces.analytics import IDailyStatRepository, ISearchLogRepository
 from base.interfaces.setting import ISettingRepository
 from base.interfaces.session import ISessionRepository
 from base.interfaces.permission import IPermissionRepository, IRolePermissionRepository, IUserPermissionRepository
+from base.interfaces.reward import IReferralRewardRepository, IUserRewardRepository
 __all__ = [
     "IBaseRepository",
     "ISoftDeleteRepository",
@@ -52,4 +53,6 @@ __all__ = [
     "IPermissionRepository",
     "IRolePermissionRepository",
     "IUserPermissionRepository",
+    "IReferralRewardRepository",
+    "IUserRewardRepository",
 ]

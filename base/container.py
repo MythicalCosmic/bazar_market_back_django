@@ -88,6 +88,8 @@ def configure(c: Container | None = None) -> Container:
         IPermissionRepository,
         IRolePermissionRepository,
         IUserPermissionRepository,
+        IReferralRewardRepository,
+        IUserRewardRepository,
     )
     from base.repositories import (
         UserRepository,
@@ -116,6 +118,8 @@ def configure(c: Container | None = None) -> Container:
         PermissionRepository,
         RolePermissionRepository,
         UserPermissionRepository,
+        ReferralRewardRepository,
+        UserRewardRepository,
     )
 
     c.register(IUserRepository, UserRepository)
@@ -144,5 +148,7 @@ def configure(c: Container | None = None) -> Container:
     c.register(IPermissionRepository, PermissionRepository)
     c.register(IRolePermissionRepository, RolePermissionRepository)
     c.register(IUserPermissionRepository, UserPermissionRepository)
+    c.register(IReferralRewardRepository, ReferralRewardRepository)
+    c.register(IUserRewardRepository, UserRewardRepository)
 
     return c
