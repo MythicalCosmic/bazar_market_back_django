@@ -97,6 +97,33 @@ class CustomerOrderService:
         if global_min > 0 and subtotal < global_min:
             raise ValidationError(f"Minimum order total is {global_min}")
 
+        # 7. Apply user rewards (free delivery / bonus product)
+        from base.models import UserReward
+        used_free_delivery = None
+        used_bonus = None
+
+        free_del = (
+            UserReward.objects.select_for_update()
+            .filter(user_id=user_id, type="free_delivery", is_used=False, free_deliveries_remaining__gt=0)
+            .first()
+        )
+        if free_del:
+            delivery_fee = Decimal(0)
+            free_del.free_deliveries_remaining -= 1
+            if free_del.free_deliveries_remaining <= 0:
+                free_del.is_used = True
+            free_del.save(update_fields=["free_deliveries_remaining", "is_used"])
+            used_free_delivery = free_del
+
+        bonus = (
+            UserReward.objects.select_for_update()
+            .filter(user_id=user_id, type="bonus_product", is_used=False, bonus_claimed=False, bonus_product__isnull=False)
+            .select_related("bonus_product")
+            .first()
+        )
+        if bonus and bonus.bonus_product:
+            used_bonus = bonus
+
         # 8. Coupon (applied on top of product discounts)
         coupon_discount = Decimal(0)
         coupon = None
@@ -158,6 +185,19 @@ class CustomerOrderService:
             }
             for ci in cart_items
         ]
+        if used_bonus:
+            items_data.append({
+                "product_id": used_bonus.bonus_product_id,
+                "product_name": f"{used_bonus.bonus_product.name_uz} (bonus)",
+                "unit": used_bonus.bonus_product.unit,
+                "unit_price": Decimal(0),
+                "quantity": used_bonus.bonus_quantity,
+                "total": Decimal(0),
+            })
+            used_bonus.bonus_claimed = True
+            used_bonus.is_used = True
+            used_bonus.save(update_fields=["bonus_claimed", "is_used"])
+
         self.item_repo.bulk_create_items(order, items_data)
 
         # 14. Deduct stock

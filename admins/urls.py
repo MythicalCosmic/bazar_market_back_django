@@ -77,6 +77,12 @@ from admins.views.v1.setting_views import (
 from admins.views.v1.favorite_views import (
     list_favorites_view, most_favorited_view, favorite_stats_view,
 )
+from admins.views.v1.referral_reward_views import (
+    list_referral_rewards_view, get_referral_reward_view,
+    create_referral_reward_view, update_referral_reward_view,
+    delete_referral_reward_view, activate_referral_reward_view,
+    deactivate_referral_reward_view,
+)
 
 app_name = "admins"
 
@@ -235,6 +241,15 @@ urlpatterns = [
     # Favorites
     path('favorites', list_favorites_view, name="favorites"),
     path('favorites/most', most_favorited_view, name="favorites-most"),
+
+    # Referral Rewards
+    path('referral-rewards', list_referral_rewards_view, name="referral-rewards"),
+    path('referral-reward/create', create_referral_reward_view, name="referral-reward-create"),
+    path('referral-reward/<int:reward_id>', get_referral_reward_view, name="referral-reward"),
+    path('referral-reward/<int:reward_id>/update', update_referral_reward_view, name="referral-reward-update"),
+    path('referral-reward/<int:reward_id>/delete', delete_referral_reward_view, name="referral-reward-delete"),
+    path('referral-reward/<int:reward_id>/activate', activate_referral_reward_view, name="referral-reward-activate"),
+    path('referral-reward/<int:reward_id>/deactivate', deactivate_referral_reward_view, name="referral-reward-deactivate"),
 
     # Stats
     path('stats/overview', overview_view, name="stats-overview"),

@@ -26,6 +26,7 @@ class P:
     MANAGE_NOTIFICATIONS = "manage_notifications"
     MANAGE_ANALYTICS = "manage_analytics"
     MANAGE_REVIEWS = "manage_reviews"
+    MANAGE_REFERRAL_REWARDS = "manage_referral_rewards"
 
     VIEW_USERS = "view_users"
     VIEW_CATEGORIES = "view_categories"

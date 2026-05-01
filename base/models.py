@@ -986,3 +986,98 @@ class Setting(models.Model):
         return f"{self.key} = {self.value[:50]}"
 
 
+class ReferralReward(TimestampMixin):
+    class Type(models.TextChoices):
+        COUPON = "coupon", "Coupon"
+        FREE_DELIVERY = "free_delivery", "Free Delivery"
+        BONUS_PRODUCT = "bonus_product", "Bonus Product"
+
+    name = models.CharField(max_length=200)
+    type = models.CharField(max_length=30, choices=Type.choices)
+    is_active = models.BooleanField(default=False, help_text="Only one reward active at a time")
+
+    # Coupon config (used when type=coupon)
+    coupon_type = models.CharField(
+        max_length=20, blank=True, default="percent",
+        help_text="percent or fixed",
+    )
+    coupon_value = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True,
+        validators=[MinValueValidator(0)],
+    )
+    coupon_max_discount = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True,
+        help_text="Cap for percent type",
+    )
+    coupon_min_order = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True,
+        help_text="Minimum order to use coupon",
+    )
+    coupon_expires_days = models.IntegerField(default=30, help_text="0 = no expiry")
+
+    # Free delivery config (used when type=free_delivery)
+    free_delivery_count = models.IntegerField(
+        default=1, help_text="Number of free delivery orders",
+    )
+
+    # Bonus product config (used when type=bonus_product)
+    bonus_product = models.ForeignKey(
+        Product, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="+",
+    )
+    bonus_quantity = models.DecimalField(
+        max_digits=8, decimal_places=3, default=1,
+    )
+
+    class Meta:
+        db_table = "referral_rewards"
+        indexes = [
+            models.Index(fields=["is_active"], name="idx_ref_rewards_active"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.type})"
+
+
+class UserReward(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="rewards")
+    reward = models.ForeignKey(
+        ReferralReward, on_delete=models.SET_NULL, null=True,
+        related_name="granted_rewards",
+    )
+    referral = models.ForeignKey(
+        Referral, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="rewards",
+    )
+    type = models.CharField(max_length=30, choices=ReferralReward.Type.choices)
+
+    # Coupon
+    coupon = models.ForeignKey(
+        Coupon, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="+",
+    )
+
+    # Free delivery
+    free_deliveries_remaining = models.IntegerField(default=0)
+
+    # Bonus product
+    bonus_product = models.ForeignKey(
+        Product, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="+",
+    )
+    bonus_quantity = models.DecimalField(max_digits=8, decimal_places=3, default=0)
+    bonus_claimed = models.BooleanField(default=False)
+
+    is_used = models.BooleanField(default=False)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "user_rewards"
+        indexes = [
+            models.Index(fields=["user_id", "is_used"], name="idx_user_rewards_active"),
+            models.Index(fields=["user_id", "type"], name="idx_user_rewards_type"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user_id} — {self.type} ({'used' if self.is_used else 'active'})"
