@@ -51,6 +51,7 @@ class CustomerAuthService:
             ip=session_info.ip_address,
             ua=session_info.user_agent,
             device=session_info.device,
+            hours=720,
         )
 
         # Send verification SMS
@@ -107,6 +108,7 @@ class CustomerAuthService:
             ip=session_info.ip_address,
             ua=session_info.user_agent,
             device=session_info.device,
+            hours=720,
         )
 
         return {
