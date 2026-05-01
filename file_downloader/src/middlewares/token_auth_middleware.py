@@ -15,6 +15,7 @@ class TokenAuthMiddleware:
 
     # Paths that should not require an API token (e.g. monitoring probes).
     EXEMPT_PATHS = frozenset({"/health", "/docs", "/openapi.json", "/redoc"})
+    EXEMPT_PREFIXES = ("/files/",)
 
     def __init__(self, app):
         self.app = app
@@ -25,7 +26,11 @@ class TokenAuthMiddleware:
             await self.app(scope, receive, send)
             return
 
-        if scope["path"] in self.EXEMPT_PATHS or scope["method"] == "OPTIONS":
+        path = scope["path"]
+        if path in self.EXEMPT_PATHS or scope["method"] == "OPTIONS":
+            await self.app(scope, receive, send)
+            return
+        if any(path.startswith(p) for p in self.EXEMPT_PREFIXES):
             await self.app(scope, receive, send)
             return
 
