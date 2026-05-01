@@ -6,6 +6,7 @@ from src.app.router import files
 from src.middlewares.token_auth_middleware import TokenAuthMiddleware
 
 app = FastAPI(title="File Downloader for Bazar Market", version="0.0.1")
+app.add_middleware(TokenAuthMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -13,7 +14,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.add_middleware(TokenAuthMiddleware)
 app.include_router(files.router)
 
 
