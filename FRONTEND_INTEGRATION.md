@@ -1,3 +1,177 @@
+# Auth Flow Change — Registration & Forgot Password
+
+## What Changed
+
+Registration no longer creates a user immediately. The user is created **only after phone verification**. Registration data is held in Redis cache until OTP is confirmed. This eliminates the "phone already registered" dead-end when a user disconnects mid-registration.
+
+A forgot/reset password flow has been added.
+
+---
+
+## New Registration Flow
+
+**Before:** `register` → user created → `verify` → flag set
+**Now:** `register` → OTP sent, data cached → `verify` → user created + session returned
+
+### Step 1: Register (sends OTP, no user created yet)
+```
+POST /api/auth/register
+Content-Type: application/json
+
+{
+  "phone": "+998901234567",
+  "first_name": "Ali",
+  "password": "secret123",
+  "last_name": "",
+  "language": "uz"
+}
+```
+
+Response:
+```json
+{
+  "success": true,
+  "message": "Verification code sent",
+  "data": {
+    "phone": "+998901234567",
+    "verification_sent": true,
+    "expires_in": 120
+  }
+}
+```
+
+**No `session_key` returned here.** The user is not logged in yet.
+
+### Step 2: Verify & complete registration
+```
+POST /api/auth/register/verify
+Content-Type: application/json
+
+{
+  "phone": "+998901234567",
+  "code": "123456",
+  "device": "iOS App"
+}
+```
+
+Response (user created now):
+```json
+{
+  "success": true,
+  "message": "Registration successful",
+  "data": {
+    "session_key": "abc123...",
+    "user": {
+      "id": 1,
+      "phone": "+998901234567",
+      "first_name": "Ali",
+      "is_phone_verified": true
+    },
+    "expires_at": "2026-06-02T..."
+  }
+}
+```
+
+Save `session_key` — user is now logged in.
+
+### Resend OTP (during registration)
+```
+POST /api/auth/register/resend
+Content-Type: application/json
+
+{"phone": "+998901234567"}
+```
+
+Rate limited to 1 per 60 seconds.
+
+### Edge Cases
+
+| Scenario | What happens |
+|---|---|
+| User closes app before verifying | No user created. They can register again with the same phone. |
+| OTP expires (2 min) | Registration data is gone. User re-submits `/register`. |
+| User enters wrong code | Error: "Invalid or expired verification code". They can retry. |
+| Someone else tries the same phone while pending | OTP won't match. No conflict. |
+
+---
+
+## Forgot Password Flow
+
+### Step 1: Request reset code
+```
+POST /api/auth/forgot-password
+Content-Type: application/json
+
+{"phone": "+998901234567"}
+```
+
+Response:
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Reset code sent",
+    "expires_in": 120
+  }
+}
+```
+
+### Step 2: Reset password with code
+```
+POST /api/auth/reset-password
+Content-Type: application/json
+
+{
+  "phone": "+998901234567",
+  "code": "654321",
+  "new_password": "newsecret123"
+}
+```
+
+Response:
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Password reset successful. Please log in."
+  }
+}
+```
+
+All existing sessions are killed on reset. Redirect to login.
+
+---
+
+## Removed Endpoints
+
+These no longer exist:
+- ~~`POST /api/auth/verify`~~ — replaced by `/api/auth/register/verify`
+- ~~`POST /api/auth/resend-code`~~ — replaced by `/api/auth/register/resend`
+
+## Unchanged Endpoints
+
+These work exactly as before:
+- `POST /api/auth/login` — phone + password
+- `POST /api/auth/logout`
+- `POST /api/auth/logout-all`
+- `GET /api/auth/me`
+- `PATCH /api/auth/me/update`
+- `POST /api/auth/me/delete`
+
+---
+
+## Frontend Checklist
+
+- [ ] Registration screen: after `/register`, show OTP input (not home screen)
+- [ ] Store `phone` from register response — needed for `/register/verify` and `/register/resend`
+- [ ] Don't store `session_key` until `/register/verify` succeeds
+- [ ] Show countdown timer (120s) on OTP screen with resend button
+- [ ] Add "Forgot password?" link on login screen → phone input → OTP → new password
+- [ ] After password reset, redirect to login (don't auto-login)
+- [ ] Remove any references to old `/auth/verify` and `/auth/resend-code` endpoints
+
+---
+
 # Referral Reward System — Frontend Integration Guide
 
 ## What Changed
