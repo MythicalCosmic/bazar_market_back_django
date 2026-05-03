@@ -2,9 +2,11 @@ from django.urls import path
 
 from customer.views.v1.auth_views import (
     register_view,
+    verify_register_view,
+    resend_register_code_view,
     login_view,
-    verify_phone_view,
-    resend_code_view,
+    forgot_password_view,
+    reset_password_view,
     logout_view,
     logout_all_view,
     me_view,
@@ -72,11 +74,13 @@ app_name = "customer"
 urlpatterns = [
     # ── Auth ──
     path("auth/register", register_view, name="register"),
+    path("auth/register/verify", verify_register_view, name="register-verify"),
+    path("auth/register/resend", resend_register_code_view, name="register-resend"),
     path("auth/login", login_view, name="login"),
+    path("auth/forgot-password", forgot_password_view, name="forgot-password"),
+    path("auth/reset-password", reset_password_view, name="reset-password"),
     path("auth/logout", logout_view, name="logout"),
     path("auth/logout-all", logout_all_view, name="logout-all"),
-    path("auth/verify", verify_phone_view, name="verify-phone"),
-    path("auth/resend-code", resend_code_view, name="resend-code"),
     path("auth/me", me_view, name="me"),
     path("auth/me/update", update_profile_view, name="update-profile"),
     path("auth/me/delete", delete_account_view, name="delete-account"),

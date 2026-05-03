@@ -36,15 +36,53 @@ def register_view(request):
     )
 
     svc = container.resolve(CustomerAuthService)
-    result = svc.register(
-        dto,
-        SessionDTO(
+    result = svc.register(dto)
+    return success(data=result, message="Verification code sent")
+
+
+@csrf_exempt
+@require_POST
+@ratelimit(5, per=60)
+def verify_register_view(request):
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return error("Invalid JSON body")
+
+    phone = data.get("phone")
+    code = data.get("code")
+    if not phone or not code:
+        return error("phone and code are required", status=422)
+
+    svc = container.resolve(CustomerAuthService)
+    result = svc.verify_register(
+        phone=phone,
+        code=str(code),
+        session_info=SessionDTO(
             ip_address=request.META.get("REMOTE_ADDR", ""),
             user_agent=request.META.get("HTTP_USER_AGENT", ""),
             device=data.get("device", ""),
         ),
     )
     return created(data=result, message="Registration successful")
+
+
+@csrf_exempt
+@require_POST
+@ratelimit(1, per=60)
+def resend_register_code_view(request):
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return error("Invalid JSON body")
+
+    phone = data.get("phone")
+    if not phone:
+        return error("phone is required", status=422)
+
+    svc = container.resolve(CustomerAuthService)
+    result = svc.resend_register_code(phone)
+    return success(data=result)
 
 
 @csrf_exempt
@@ -75,29 +113,39 @@ def login_view(request):
 
 @csrf_exempt
 @require_POST
-@require_auth
-def verify_phone_view(request):
+@ratelimit(3, per=60)
+def forgot_password_view(request):
     try:
         data = json.loads(request.body)
     except (json.JSONDecodeError, ValueError):
         return error("Invalid JSON body")
 
-    code = data.get("code")
-    if not code:
-        return error("code is required", status=422)
+    phone = data.get("phone")
+    if not phone:
+        return error("phone is required", status=422)
 
     svc = container.resolve(CustomerAuthService)
-    result = svc.verify_phone(request.user_obj, str(code))
+    result = svc.forgot_password(phone)
     return success(data=result)
 
 
 @csrf_exempt
 @require_POST
-@require_auth
-@ratelimit(1, per=60)
-def resend_code_view(request):
+@ratelimit(5, per=60)
+def reset_password_view(request):
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return error("Invalid JSON body")
+
+    phone = data.get("phone")
+    code = data.get("code")
+    new_password = data.get("new_password")
+    if not phone or not code or not new_password:
+        return error("phone, code, and new_password are required", status=422)
+
     svc = container.resolve(CustomerAuthService)
-    result = svc.resend_code(request.user_obj)
+    result = svc.reset_password(phone, str(code), new_password)
     return success(data=result)
 
 
