@@ -230,7 +230,7 @@ class CustomerOrderService:
             "status": order.status,
             "subtotal": str(subtotal),
             "delivery_fee": str(delivery_fee),
-            "discount": str(total_discount),
+            "discount": str(coupon_discount),
             "total": str(total),
             "payment_method": dto.payment_method,
         }
