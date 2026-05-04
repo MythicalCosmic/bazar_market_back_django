@@ -85,12 +85,6 @@ class CustomerOrderService:
         discounted_prices = self._get_discounted_prices(cart_items)
         subtotal = sum(discounted_prices[ci.product_id] * ci.quantity for ci in cart_items)
 
-        # Track how much was saved from product discounts
-        product_discount = sum(
-            (ci.product.price - discounted_prices[ci.product_id]) * ci.quantity
-            for ci in cart_items
-        )
-
         # 6. Delivery fee (from settings) & global minimum order
         delivery_fee = Decimal(str(self.setting_repo.get_value("default_delivery_fee", "0")))
         global_min = Decimal(str(self.setting_repo.get_value("min_order_total", "0")))
@@ -135,7 +129,6 @@ class CustomerOrderService:
             coupon_discount = coupon_svc.calculate_discount(coupon, subtotal)
 
         # 9. Total
-        total_discount = product_discount + coupon_discount
         total = subtotal + delivery_fee - coupon_discount
         if total < 0:
             total = Decimal(0)
@@ -161,7 +154,7 @@ class CustomerOrderService:
             status=Order.Status.PENDING,
             subtotal=subtotal,
             delivery_fee=delivery_fee,
-            discount=total_discount,
+            discount=coupon_discount,
             total=total,
             payment_method=dto.payment_method,
             payment_status=Order.PaymentStatus.UNPAID,
