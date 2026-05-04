@@ -111,7 +111,13 @@ class ProductService:
 
         qs = self.product_repo.apply_ordering(qs, order_by, ORDER_FIELDS)
 
-        return self.product_repo.paginate(qs, page, per_page)
+        total_money = qs.filter(stock_qty__isnull=False).aggregate(
+            total_money=Sum(F("price") * F("stock_qty"))
+        )["total_money"] or Decimal(0)
+
+        result = self.product_repo.paginate(qs, page, per_page)
+        result["total_money"] = str(total_money)
+        return result
 
     def get_by_id(self, product_id: int):
         product = (
