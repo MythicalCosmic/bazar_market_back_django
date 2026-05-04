@@ -127,7 +127,7 @@ class CustomerAuthService:
             raise ValidationError("phone is required")
 
         user = self._users.get_by_phone(phone)
-        if not user or user.role != User.Role.CLIENT:
+        if not user:
             raise ValidationError("No account found with this phone number")
 
         if not user.is_active:
@@ -150,7 +150,7 @@ class CustomerAuthService:
             raise ValidationError("Invalid or expired verification code")
 
         user = self._users.get_by_phone(phone)
-        if not user or user.role != User.Role.CLIENT:
+        if not user:
             raise ValidationError("No account found with this phone number")
 
         user.set_password(new_password)
