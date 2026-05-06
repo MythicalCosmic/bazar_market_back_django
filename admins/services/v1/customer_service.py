@@ -1,12 +1,18 @@
 from base.interfaces.user import IUserRepository
+from base.interfaces.session import ISessionRepository
 from base.exceptions import NotFoundError, ValidationError
 from admins.dto.customer import UpdateCustomerDTO
 from base.models import User
 
 
 class CustomerService:
-    def __init__(self, user_repository: IUserRepository):
+    def __init__(
+        self,
+        user_repository: IUserRepository,
+        session_repository: ISessionRepository,
+    ):
         self.user_repository = user_repository
+        self.session_repository = session_repository
 
     def _customers_qs(self):
         return self.user_repository.get_all().filter(role=User.Role.CLIENT)
@@ -54,6 +60,7 @@ class CustomerService:
             raise ValidationError("This customer is already deactivated")
 
         self.user_repository.deactivate(customer)
+        self.session_repository.invalidate_all_for_user(customer)
         return {"message": "Customer deactivated"}
 
     def activate(self, customer_id: int) -> dict:

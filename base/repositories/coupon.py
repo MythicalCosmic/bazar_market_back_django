@@ -29,9 +29,10 @@ class CouponRepository(BaseRepository[Coupon]):
         return self.get_valid().filter(code=code).exists()
 
     def increment_usage(self, coupon: Coupon) -> int:
-        return self.model.objects.filter(pk=coupon.pk).update(
-            used_count=F("used_count") + 1
-        )
+        """Atomic conditional increment. Returns 0 if usage_limit reached."""
+        return self.model.objects.filter(pk=coupon.pk).filter(
+            Q(usage_limit__isnull=True) | Q(used_count__lt=F("usage_limit"))
+        ).update(used_count=F("used_count") + 1)
 
     def decrement_usage(self, coupon: Coupon) -> int:
         return self.model.objects.filter(

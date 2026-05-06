@@ -283,6 +283,10 @@ def bulk_update_status_view(request):
     new_status = data.get("status")
     if not isinstance(order_ids, list) or not all(isinstance(i, int) for i in order_ids):
         return error("order_ids must be a list of integers", status=422)
+    if not order_ids:
+        return error("order_ids must not be empty", status=422)
+    if len(order_ids) > 500:
+        return error("order_ids cannot exceed 500 entries", status=422)
     if not new_status:
         return error("status is required", status=422)
 

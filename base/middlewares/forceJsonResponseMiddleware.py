@@ -1,8 +1,11 @@
 from django.conf import settings
-from django.http import JsonResponse
+from django.http import JsonResponse, StreamingHttpResponse
 from django.utils.deprecation import MiddlewareMixin
 
 from base.exceptions import ServiceError, ValidationError
+
+
+_NON_JSON_PREFIXES = ("/admin/", "/static/", "/media/", "/docs/", "/telescope/")
 
 
 class JSONResponseMiddleware(MiddlewareMixin):
@@ -28,9 +31,16 @@ class JSONResponseMiddleware(MiddlewareMixin):
         )
 
     def process_response(self, request, response):
-        if isinstance(response, JsonResponse):
+        if isinstance(response, (JsonResponse, StreamingHttpResponse)):
             return response
         if response.status_code < 400:
+            return response
+        # Don't rewrite errors for non-API paths (admin, static, docs, telescope).
+        path = request.path or ""
+        if any(path.startswith(p) for p in _NON_JSON_PREFIXES):
+            return response
+        accept = request.META.get("HTTP_ACCEPT", "")
+        if "text/html" in accept and "application/json" not in accept:
             return response
         return JsonResponse(
             {"success": False, "message": self._status_message(response.status_code)},

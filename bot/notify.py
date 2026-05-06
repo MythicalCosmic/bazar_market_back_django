@@ -1,28 +1,16 @@
-import asyncio
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-def _send_async(coro):
-    """Bridge sync Django context to async bot sending."""
-    try:
-        loop = asyncio.get_running_loop()
-        loop.create_task(coro)
-    except RuntimeError:
-        asyncio.run(coro)
-
-
 def _via_celery(task, *args):
-    """Try Celery .delay(), fall back to direct execution."""
+    """Enqueue via Celery .delay(). On failure (broker down), log and drop —
+    the synchronous fallback used to crash because bind=True tasks expect a
+    self argument that direct calls don't supply."""
     try:
         task.delay(*args)
     except Exception:
-        # Celery not available — run the task function directly (sync)
-        try:
-            task(*args)
-        except Exception as e:
-            logger.warning(f"Direct task execution failed: {e}")
+        logger.exception("Failed to enqueue Celery task %s; notification dropped", task.name)
 
 
 def notify_admins_new_order(order):

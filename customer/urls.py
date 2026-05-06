@@ -5,12 +5,14 @@ from customer.views.v1.auth_views import (
     verify_register_view,
     resend_register_code_view,
     login_view,
-    forgot_password_view,
-    reset_password_view,
+    verify_login_view,
+    resend_login_code_view,
     logout_view,
     logout_all_view,
     me_view,
     update_profile_view,
+    request_phone_change_view,
+    verify_phone_change_view,
     delete_account_view,
 )
 from customer.views.v1.catalog_views import (
@@ -77,12 +79,14 @@ urlpatterns = [
     path("auth/register/verify", verify_register_view, name="register-verify"),
     path("auth/register/resend", resend_register_code_view, name="register-resend"),
     path("auth/login", login_view, name="login"),
-    path("auth/forgot-password", forgot_password_view, name="forgot-password"),
-    path("auth/reset-password", reset_password_view, name="reset-password"),
+    path("auth/login/verify", verify_login_view, name="login-verify"),
+    path("auth/login/resend", resend_login_code_view, name="login-resend"),
     path("auth/logout", logout_view, name="logout"),
     path("auth/logout-all", logout_all_view, name="logout-all"),
     path("auth/me", me_view, name="me"),
     path("auth/me/update", update_profile_view, name="update-profile"),
+    path("auth/me/phone", request_phone_change_view, name="phone-change-request"),
+    path("auth/me/phone/verify", verify_phone_change_view, name="phone-change-verify"),
     path("auth/me/delete", delete_account_view, name="delete-account"),
 
     # ── Catalog (public) ──

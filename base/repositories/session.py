@@ -36,7 +36,7 @@ class SessionRepository(BaseRepository[Session]):
     def create_session(
         self, user: User, ip: str, ua: str, device: str, hours: int = 72
     ) -> Session:
-        Session.objects.filter(expires_at__lt=timezone.now()).delete()
+        # Expired-session cleanup happens out-of-band via Celery beat (see bot.tasks).
         session = Session.objects.create(
             key=self._generate_key(),
             user=user,

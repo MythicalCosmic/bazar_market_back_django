@@ -83,7 +83,7 @@ def grant_user_permission_view(request, user_id):
         return error("permission is required", status=422)
 
     svc = container.resolve(RoleService)
-    result = svc.grant_user_permission(user_id, codename)
+    result = svc.grant_user_permission(user_id, codename, actor=request.user_obj)
     return success(data=result)
 
 
@@ -101,7 +101,7 @@ def deny_user_permission_view(request, user_id):
         return error("permission is required", status=422)
 
     svc = container.resolve(RoleService)
-    result = svc.deny_user_permission(user_id, codename)
+    result = svc.deny_user_permission(user_id, codename, actor=request.user_obj)
     return success(data=result)
 
 
@@ -119,7 +119,7 @@ def remove_user_permission_view(request, user_id):
         return error("permission is required", status=422)
 
     svc = container.resolve(RoleService)
-    result = svc.remove_user_permission(user_id, codename)
+    result = svc.remove_user_permission(user_id, codename, actor=request.user_obj)
     return success(data=result)
 
 
@@ -128,7 +128,7 @@ def remove_user_permission_view(request, user_id):
 @require_permission(P.MANAGE_ROLES)
 def clear_user_permissions_view(request, user_id):
     svc = container.resolve(RoleService)
-    return success(data=svc.clear_user_permissions(user_id))
+    return success(data=svc.clear_user_permissions(user_id, actor=request.user_obj))
 
 
 @csrf_exempt

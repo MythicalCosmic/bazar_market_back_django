@@ -56,7 +56,7 @@ def list_categories_view(request):
         order_by=request.GET.get("order_by", "sort_order"),
         page=page,
         per_page=per_page,
-        is_deleted=bool(request.GET.get("is_deleted", None))
+        is_deleted=str(request.GET.get("is_deleted", "")).lower() == "true",
     )
     result["items"] = [_serialize_category(c) for c in result["items"]]
     return success(data=result)

@@ -4,8 +4,21 @@ from datetime import datetime
 from django.db.models import QuerySet, Sum, Count
 from django.utils import timezone
 
+from base.exceptions import ValidationError
 from base.models import Order, OrderItem, OrderStatusLog
 from base.repositories.base import BaseRepository
+
+
+# Forward-only state machine. Cancelling is allowed from any non-terminal state.
+_ALLOWED_TRANSITIONS = {
+    Order.Status.PENDING: {Order.Status.CONFIRMED, Order.Status.CANCELLED},
+    Order.Status.CONFIRMED: {Order.Status.PREPARING, Order.Status.CANCELLED},
+    Order.Status.PREPARING: {Order.Status.DELIVERING, Order.Status.CANCELLED},
+    Order.Status.DELIVERING: {Order.Status.DELIVERED, Order.Status.CANCELLED},
+    Order.Status.DELIVERED: {Order.Status.COMPLETED},
+    Order.Status.COMPLETED: set(),
+    Order.Status.CANCELLED: set(),
+}
 
 
 class OrderRepository(BaseRepository[Order]):
@@ -37,19 +50,24 @@ class OrderRepository(BaseRepository[Order]):
         )
 
     def update_status(self, order: Order, status: str) -> Order:
+        allowed = _ALLOWED_TRANSITIONS.get(order.status, set())
+        if status != order.status and status not in allowed:
+            raise ValidationError(
+                f"Cannot transition order {order.order_number} from '{order.status}' to '{status}'"
+            )
         now = timezone.now()
         kwargs: dict = {"status": status}
-        if status == Order.Status.CONFIRMED:
+        if status == Order.Status.CONFIRMED and not order.confirmed_at:
             kwargs["confirmed_at"] = now
-        elif status == Order.Status.PREPARING:
+        elif status == Order.Status.PREPARING and not order.preparing_at:
             kwargs["preparing_at"] = now
-        elif status == Order.Status.DELIVERING:
+        elif status == Order.Status.DELIVERING and not order.delivering_at:
             kwargs["delivering_at"] = now
-        elif status == Order.Status.DELIVERED:
+        elif status == Order.Status.DELIVERED and not order.delivered_at:
             kwargs["delivered_at"] = now
-        elif status == Order.Status.COMPLETED:
+        elif status == Order.Status.COMPLETED and not order.completed_at:
             kwargs["completed_at"] = now
-        elif status == Order.Status.CANCELLED:
+        elif status == Order.Status.CANCELLED and not order.cancelled_at:
             kwargs["cancelled_at"] = now
         return self.update(order, **kwargs)
 
@@ -70,17 +88,21 @@ class OrderRepository(BaseRepository[Order]):
     def get_revenue_in_range(self, start: datetime, end: datetime) -> dict:
         return self.get_queryset().filter(
             created_at__range=(start, end),
-            status=Order.Status.COMPLETED,
+            status__in=[Order.Status.DELIVERED, Order.Status.COMPLETED],
         ).aggregate(
             total_revenue=Sum("total"),
             order_count=Count("id"),
         )
 
     def cancel(self, order: Order, reason: str = "") -> Order:
+        if order.status == Order.Status.CANCELLED:
+            return order
+        if order.status not in _ALLOWED_TRANSITIONS or Order.Status.CANCELLED not in _ALLOWED_TRANSITIONS[order.status]:
+            raise ValidationError(f"Cannot cancel order in status '{order.status}'")
         return self.update(
             order,
             status=Order.Status.CANCELLED,
-            cancelled_at=timezone.now(),
+            cancelled_at=order.cancelled_at or timezone.now(),
             cancel_reason=reason,
         )
 
@@ -125,4 +147,4 @@ class OrderStatusLogRepository(BaseRepository[OrderStatusLog]):
         )
 
     def get_latest(self, order_id: int) -> Optional[OrderStatusLog]:
-        return self.get_by_order(order_id).last()
+        return self.get_by_order(order_id).order_by("created_at", "id").last()

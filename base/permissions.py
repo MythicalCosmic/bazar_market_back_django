@@ -2,6 +2,7 @@ import logging
 from functools import wraps
 
 from django.core.cache import cache
+from redis.exceptions import RedisError
 
 from base.exceptions import AuthenticationError, ForbiddenError
 
@@ -71,7 +72,7 @@ DEFAULT_ROLE_PERMISSIONS = {
 def _cache_safe(fn, *args, default=None):
     try:
         return fn(*args)
-    except Exception:
+    except (RedisError, ConnectionError):
         logger.warning("Redis unavailable, skipping permission cache")
         return default
 
@@ -155,13 +156,13 @@ def clear_all_permission_cache():
 
 def get_session_from_request(request):
     from base.container import container
-    from base.repositories.session import SessionRepository
+    from base.interfaces.session import ISessionRepository
 
     auth_header = request.META.get("HTTP_AUTHORIZATION", "")
     if not auth_header.startswith("Bearer "):
         raise AuthenticationError("Authorization header required")
     token = auth_header[7:]
-    session_repo = container.resolve(SessionRepository)
+    session_repo = container.resolve(ISessionRepository)
     session = session_repo.get_by_key(token)
     if not session:
         raise AuthenticationError("Invalid or expired session")

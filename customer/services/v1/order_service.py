@@ -1,7 +1,8 @@
+import logging
+import secrets
 from decimal import Decimal
 
 from django.db import transaction
-from django.db.models import Q
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
@@ -13,9 +14,12 @@ from base.interfaces.address import IAddressRepository
 from base.interfaces.setting import ISettingRepository
 from base.interfaces.discount import IDiscountRepository
 from base.exceptions import NotFoundError, ValidationError
-from base.models import Order, Discount
+from base.models import CartItem, Order
+from base.discount_calculator import build_discount_map, apply_best_discount
 from customer.dto.order import PlaceOrderDTO
 from customer.services.v1.coupon_service import CustomerCouponService
+
+logger = logging.getLogger(__name__)
 
 
 VALID_PAYMENT_METHODS = {"cash", "card"}
@@ -48,8 +52,12 @@ class CustomerOrderService:
 
     @transaction.atomic
     def place_order(self, user_id: int, dto: PlaceOrderDTO) -> dict:
-        # 1. Cart
-        cart_items = list(self.cart_repo.get_by_user(user_id))
+        # 1. Cart — lock rows so concurrent place_order from same user blocks
+        cart_items = list(
+            CartItem.objects.select_for_update(of=("self",))
+            .select_related("product")
+            .filter(user_id=user_id)
+        )
         if not cart_items:
             raise ValidationError("Cart is empty")
 
@@ -96,18 +104,19 @@ class CustomerOrderService:
         used_free_delivery = None
         used_bonus = None
 
-        free_del = (
-            UserReward.objects.select_for_update()
-            .filter(user_id=user_id, type="free_delivery", is_used=False, free_deliveries_remaining__gt=0)
-            .first()
-        )
-        if free_del:
-            delivery_fee = Decimal(0)
-            free_del.free_deliveries_remaining -= 1
-            if free_del.free_deliveries_remaining <= 0:
-                free_del.is_used = True
-            free_del.save(update_fields=["free_deliveries_remaining", "is_used"])
-            used_free_delivery = free_del
+        if delivery_fee > 0:
+            free_del = (
+                UserReward.objects.select_for_update()
+                .filter(user_id=user_id, type="free_delivery", is_used=False, free_deliveries_remaining__gt=0)
+                .first()
+            )
+            if free_del:
+                delivery_fee = Decimal(0)
+                free_del.free_deliveries_remaining -= 1
+                if free_del.free_deliveries_remaining <= 0:
+                    free_del.is_used = True
+                free_del.save(update_fields=["free_deliveries_remaining", "is_used"])
+                used_free_delivery = free_del
 
         bonus = (
             UserReward.objects.select_for_update()
@@ -200,9 +209,10 @@ class CustomerOrderService:
                 if updated == 0:
                     raise ValidationError(f"'{ci.product.name_uz}' went out of stock")
 
-        # 15. Record coupon usage
+        # 15. Record coupon usage — race-safe: conditional increment must succeed
         if coupon:
-            self.coupon_repo.increment_usage(coupon)
+            if self.coupon_repo.increment_usage(coupon) == 0:
+                raise ValidationError("This coupon has reached its usage limit")
             self.usage_repo.record_usage(coupon.id, user_id, order.id, coupon_discount)
 
         # 16. Log status
@@ -217,12 +227,15 @@ class CustomerOrderService:
         # 17. Clear cart
         self.cart_repo.clear_cart(user_id)
 
-        # 18. Notify admins via Telegram
-        try:
-            from bot.notify import notify_admins_new_order
-            notify_admins_new_order(order)
-        except Exception:
-            pass  # Non-critical
+        # 18. Notify admins via Telegram (after commit, so rolled-back orders aren't announced)
+        def _notify():
+            try:
+                from bot.notify import notify_admins_new_order
+                notify_admins_new_order(order)
+            except Exception:
+                logger.exception("notify_admins_new_order failed", extra={"order_id": order.id})
+
+        transaction.on_commit(_notify)
 
         return {
             "order_id": order.id,
@@ -236,46 +249,13 @@ class CustomerOrderService:
         }
 
     def _get_discounted_prices(self, cart_items) -> dict:
-        """Batch-fetch active discounts and compute best price per product."""
-        now = timezone.now()
-        product_ids = [ci.product_id for ci in cart_items]
-        category_ids = list({ci.product.category_id for ci in cart_items})
-
-        discounts = list(
-            Discount.objects.filter(
-                is_active=True, deleted_at__isnull=True,
-            ).filter(
-                Q(starts_at__isnull=True) | Q(starts_at__lte=now),
-                Q(expires_at__isnull=True) | Q(expires_at__gte=now),
-            ).filter(
-                Q(products__in=product_ids) | Q(categories__in=category_ids)
-            ).distinct().prefetch_related("products", "categories")
-        )
-
+        """Compute best discounted price per product via the shared calculator."""
+        by_product, by_category = build_discount_map()
         prices = {}
         for ci in cart_items:
             p = ci.product
-            best_price = p.price
-
-            for d in discounts:
-                d_product_ids = set(d.products.values_list("id", flat=True))
-                d_category_ids = set(d.categories.values_list("id", flat=True))
-
-                if p.id not in d_product_ids and p.category_id not in d_category_ids:
-                    continue
-
-                if d.type == "percent":
-                    disc = p.price * d.value / Decimal(100)
-                    if d.max_discount:
-                        disc = min(disc, d.max_discount)
-                else:
-                    disc = min(d.value, p.price)
-
-                candidate = p.price - disc
-                if candidate < best_price:
-                    best_price = candidate
-
-            prices[p.id] = max(best_price, Decimal(0))
+            info = apply_best_discount(p.price, p.id, p.category_id, by_product, by_category)
+            prices[p.id] = Decimal(info["discounted_price"]) if info else p.price
         return prices
 
     def list_orders(self, user_id: int, status=None, page=1, per_page=20):
@@ -383,11 +363,7 @@ class CustomerOrderService:
 
     @staticmethod
     def _generate_order_number() -> str:
-        now = timezone.now()
-        date_str = now.strftime("%Y%m%d")
-        prefix = f"ORD-{date_str}-"
-
-        count = Order.objects.filter(order_number__startswith=prefix).count()
-        seq = count + 1
-
-        return f"{prefix}{seq:04d}"
+        # Random suffix avoids the count()+1 race that produced IntegrityErrors under load.
+        date_str = timezone.now().strftime("%Y%m%d")
+        suffix = secrets.token_hex(3).upper()
+        return f"ORD-{date_str}-{suffix}"

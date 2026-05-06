@@ -1,7 +1,8 @@
 from typing import Optional
 from decimal import Decimal
 
-from django.db.models import QuerySet
+from django.db import transaction
+from django.db.models import F, QuerySet
 
 from base.models import CartItem
 from base.repositories.base import BaseRepository
@@ -21,11 +22,18 @@ class CartItemRepository(BaseRepository[CartItem]):
         ).first()
 
     def add_item(self, user_id: int, product_id: int, quantity: Decimal) -> CartItem:
-        item, _ = self.model.objects.update_or_create(
-            user_id=user_id,
-            product_id=product_id,
-            defaults={"quantity": quantity},
-        )
+        """Add to cart accumulating quantity if the row exists."""
+        with transaction.atomic():
+            item, created = self.model.objects.get_or_create(
+                user_id=user_id,
+                product_id=product_id,
+                defaults={"quantity": quantity},
+            )
+            if not created:
+                self.model.objects.filter(pk=item.pk).update(
+                    quantity=F("quantity") + quantity
+                )
+                item.refresh_from_db(fields=["quantity"])
         return item
 
     def update_quantity(self, item: CartItem, quantity: Decimal) -> CartItem:

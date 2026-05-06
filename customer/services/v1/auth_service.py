@@ -9,7 +9,7 @@ from base.interfaces.session import ISessionRepository
 from base.exceptions import AuthenticationError, ValidationError
 from base.models import User
 from base.sms import send_otp, verify_otp
-from customer.dto.auth import RegisterDTO, LoginDTO, SessionDTO
+from customer.dto.auth import RegisterDTO, SessionDTO
 from customer.dto.profile import UpdateProfileDTO
 
 
@@ -21,18 +21,25 @@ def _pending_key(phone: str) -> str:
     return f"pending_reg:{phone}"
 
 
+def _login_key(phone: str) -> str:
+    return f"pending_login:{phone}"
+
+
+def _phone_change_key(user_id: int) -> str:
+    return f"pending_phone_change:{user_id}"
+
+
 class CustomerAuthService:
 
     def __init__(self, user_repo: IUserRepository, session_repo: ISessionRepository):
         self._users = user_repo
         self._sessions = session_repo
 
-    def register(self, dto: RegisterDTO) -> dict:
-        if not dto.phone or not dto.first_name or not dto.password:
-            raise ValidationError("phone, first_name, and password are required")
+    # ── Registration (OTP) ──────────────────────────────────────────
 
-        if len(dto.password) < 6:
-            raise ValidationError("Password must be at least 6 characters")
+    def register(self, dto: RegisterDTO) -> dict:
+        if not dto.phone or not dto.first_name:
+            raise ValidationError("phone and first_name are required")
 
         if dto.language and dto.language not in VALID_LANGUAGES:
             raise ValidationError(f"Invalid language. Must be one of: {', '.join(VALID_LANGUAGES)}")
@@ -49,7 +56,6 @@ class CustomerAuthService:
             "phone": dto.phone,
             "first_name": dto.first_name,
             "last_name": dto.last_name,
-            "password": dto.password,
             "language": dto.language or "uz",
             "telegram_id": dto.telegram_id,
         }
@@ -89,7 +95,6 @@ class CustomerAuthService:
             telegram_id=pending.get("telegram_id"),
             is_phone_verified=True,
         )
-        user.set_password(pending["password"])
 
         session = self._sessions.create_session(
             user=user,
@@ -117,60 +122,48 @@ class CustomerAuthService:
         if not result["sent"]:
             raise ValidationError(result["message"])
 
-        # Refresh the pending registration TTL
         cache.set(_pending_key(phone), raw, timeout=PENDING_REG_TTL)
 
         return {"message": result["message"], "expires_in": result.get("expires_in", PENDING_REG_TTL)}
 
-    def forgot_password(self, phone: str) -> dict:
+    # ── Login (OTP) ─────────────────────────────────────────────────
+
+    def login(self, phone: str) -> dict:
         if not phone:
             raise ValidationError("phone is required")
 
         user = self._users.get_by_phone(phone)
-        if not user:
-            raise ValidationError("No account found with this phone number")
+        eligible = bool(user and user.role == User.Role.CLIENT and user.is_active)
 
-        if not user.is_active:
-            raise ValidationError("Account is deactivated")
+        if eligible:
+            sms_result = send_otp(phone)
+            if sms_result["sent"]:
+                cache.set(_login_key(phone), phone, timeout=PENDING_REG_TTL)
 
-        result = send_otp(phone)
-        if not result["sent"]:
-            raise ValidationError(result["message"])
+        return {
+            "message": "If an account exists for this phone, a verification code has been sent",
+            "phone": phone,
+            "expires_in": PENDING_REG_TTL,
+        }
 
-        return {"message": "Reset code sent", "expires_in": result.get("expires_in", PENDING_REG_TTL)}
+    def verify_login(self, phone: str, code: str, session_info: SessionDTO) -> dict:
+        if not phone or not code:
+            raise ValidationError("phone and code are required")
 
-    def reset_password(self, phone: str, code: str, new_password: str) -> dict:
-        if not phone or not code or not new_password:
-            raise ValidationError("phone, code, and new_password are required")
-
-        if len(new_password) < 6:
-            raise ValidationError("Password must be at least 6 characters")
+        if not cache.get(_login_key(phone)):
+            raise ValidationError("No pending login for this phone. Please request a code first.")
 
         if not verify_otp(phone, code):
             raise ValidationError("Invalid or expired verification code")
 
+        cache.delete(_login_key(phone))
+
         user = self._users.get_by_phone(phone)
-        if not user:
-            raise ValidationError("No account found with this phone number")
-
-        user.set_password(new_password)
-        self._sessions.invalidate_all_for_user(user)
-
-        return {"message": "Password reset successful. Please log in."}
-
-    def login(self, dto: LoginDTO, session_info: SessionDTO) -> dict:
-        user = self._users.get_by_phone(dto.phone)
-        if not user:
-            raise AuthenticationError("Invalid phone or password")
-
-        if user.role != User.Role.CLIENT:
-            raise AuthenticationError("Invalid phone or password")
+        if not user or user.role != User.Role.CLIENT:
+            raise AuthenticationError("No account found with this phone number")
 
         if not user.is_active:
             raise AuthenticationError("Account is deactivated")
-
-        if not user.check_password(dto.password):
-            raise AuthenticationError("Invalid phone or password")
 
         self._users.update_last_seen(user)
 
@@ -188,6 +181,23 @@ class CustomerAuthService:
             "expires_at": session.expires_at.isoformat(),
         }
 
+    def resend_login_code(self, phone: str) -> dict:
+        if not phone:
+            raise ValidationError("phone is required")
+
+        if not cache.get(_login_key(phone)):
+            raise ValidationError("No pending login for this phone. Please request a code first.")
+
+        result = send_otp(phone)
+        if not result["sent"]:
+            raise ValidationError(result["message"])
+
+        cache.set(_login_key(phone), phone, timeout=PENDING_REG_TTL)
+
+        return {"message": result["message"], "expires_in": result.get("expires_in", PENDING_REG_TTL)}
+
+    # ── Session ─────────────────────────────────────────────────────
+
     def logout(self, session_token: str) -> dict:
         session = self._sessions.get_by_key(session_token)
         if not session:
@@ -202,17 +212,13 @@ class CustomerAuthService:
         self._sessions.invalidate_all_for_user(session.user)
         return {"message": "Logged out from all devices"}
 
+    # ── Profile ─────────────────────────────────────────────────────
+
     def get_profile(self, user) -> dict:
         return self._user_dict(user)
 
     def update_profile(self, user, dto: UpdateProfileDTO) -> dict:
         data = dto.to_dict()
-
-        raw_password = data.pop("password", None)
-
-        if "phone" in data and data["phone"] != user.phone:
-            if self._users.get_by_phone(data["phone"]):
-                raise ValidationError("Phone number already in use")
 
         if "language" in data and data["language"] not in VALID_LANGUAGES:
             raise ValidationError(f"Invalid language. Must be one of: {', '.join(VALID_LANGUAGES)}")
@@ -220,12 +226,52 @@ class CustomerAuthService:
         if data:
             self._users.update(user, **data)
 
-        if raw_password:
-            if len(raw_password) < 6:
-                raise ValidationError("Password must be at least 6 characters")
-            user.set_password(raw_password)
-
         return self._user_dict(user)
+
+    # ── Phone change (OTP-protected) ────────────────────────────────
+
+    def request_phone_change(self, user, new_phone: str) -> dict:
+        if not new_phone:
+            raise ValidationError("new_phone is required")
+
+        if new_phone == user.phone:
+            raise ValidationError("New phone is the same as current")
+
+        if self._users.get_by_phone(new_phone):
+            raise ValidationError("Phone number already in use")
+
+        sms_result = send_otp(new_phone)
+        if not sms_result["sent"]:
+            raise ValidationError(sms_result["message"])
+
+        cache.set(_phone_change_key(user.id), new_phone, timeout=PENDING_REG_TTL)
+
+        return {
+            "message": "Verification code sent to new phone",
+            "expires_in": sms_result.get("expires_in", PENDING_REG_TTL),
+        }
+
+    @transaction.atomic
+    def verify_phone_change(self, user, code: str) -> dict:
+        if not code:
+            raise ValidationError("code is required")
+
+        new_phone = cache.get(_phone_change_key(user.id))
+        if not new_phone:
+            raise ValidationError("No pending phone change. Please request a code first.")
+
+        if not verify_otp(new_phone, code):
+            raise ValidationError("Invalid or expired verification code")
+
+        cache.delete(_phone_change_key(user.id))
+
+        if self._users.get_by_phone(new_phone):
+            raise ValidationError("Phone number already in use")
+
+        self._users.update(user, phone=new_phone)
+        self._sessions.invalidate_all_for_user(user)
+
+        return {"message": "Phone number updated. Please log in again."}
 
     @transaction.atomic
     def delete_account(self, user) -> dict:

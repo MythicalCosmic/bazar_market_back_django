@@ -1,4 +1,5 @@
 import json
+from dataclasses import fields
 
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_GET, require_http_methods
@@ -8,7 +9,9 @@ from admins.services.v1.user_service import UserService
 from base.container import container
 from base.permissions import require_permission, P
 from base.responses import success, error, created, not_found
-import telescope
+
+
+_UPDATE_FIELDS = {f.name for f in fields(UpdateUserDTO)}
 
 
 def _serialize_user(u) -> dict:
@@ -48,7 +51,7 @@ def list_users_view(request):
         order_by=request.GET.get("order_by", "-created_at"),
         page=page,
         per_page=per_page,
-        is_deleted=request.GET.get("is_deleted", False),
+        is_deleted=str(request.GET.get("is_deleted", "")).lower() == "true",
     )
     result["items"] = [_serialize_user(u) for u in result["items"]]
     return success(data=result)
@@ -80,17 +83,19 @@ def create_user_view(request):
         return error(f"Missing required fields: {', '.join(missing)}", status=422)
 
     dto = CreateUserDTO(
-        username=data["username"],
-        first_name=data["first_name"],
-        last_name=data["last_name"],
+        username=data["username"].strip(),
+        first_name=data["first_name"].strip(),
+        last_name=data["last_name"].strip(),
         role=data["role"],
         password=data["password"],
         phone=data.get("phone"),
         language=data.get("language"),
         telegram_id=data.get("telegram_id"),
     )
+    if not dto.username:
+        return error("username cannot be blank", status=422)
     svc = container.resolve(UserService)
-    result = svc.create_user(dto)
+    result = svc.create_user(dto, actor=request.user_obj)
     return created(data=result, message="User created")
 
 
@@ -103,9 +108,9 @@ def update_user_view(request, user_id):
     except (json.JSONDecodeError, ValueError):
         return error("Invalid JSON body")
 
-    dto = UpdateUserDTO(**{k: v for k, v in data.items() if hasattr(UpdateUserDTO, k)})
+    dto = UpdateUserDTO(**{k: v for k, v in data.items() if k in _UPDATE_FIELDS})
     svc = container.resolve(UserService)
-    result = svc.update_user(user_id, dto)
+    result = svc.update_user(user_id, dto, actor=request.user_obj)
     return success(data=result, message="User updated")
 
 
@@ -114,7 +119,7 @@ def update_user_view(request, user_id):
 @require_permission(P.MANAGE_USERS)
 def delete_user_view(request, user_id):
     svc = container.resolve(UserService)
-    result = svc.delete_user(user_id)
+    result = svc.delete_user(user_id, actor=request.user_obj)
     return success(data=result)
 
 
@@ -123,5 +128,5 @@ def delete_user_view(request, user_id):
 @require_permission(P.MANAGE_USERS)
 def restore_user_view(request, user_id):
     svc = container.resolve(UserService)
-    result = svc.restore_user(user_id)
+    result = svc.restore_user(user_id, actor=request.user_obj)
     return success(data=result)

@@ -124,6 +124,10 @@ TEXTS = {
         "uz": "✅ Buyurtma #{order_number} to'lov holati: {status}",
         "ru": "✅ Заказ #{order_number} статус оплаты: {status}",
     },
+    "operation_failed": {
+        "uz": "Amal bajarilmadi. Qaytadan urinib ko'ring.",
+        "ru": "Операция не выполнена. Попробуйте ещё раз.",
+    },
 }
 
 
