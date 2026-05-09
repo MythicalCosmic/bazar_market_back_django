@@ -29,9 +29,19 @@ class Command(BaseCommand):
             action="store_true",
             help="Delete all existing data before seeding",
         )
+        parser.add_argument(
+            "--force",
+            action="store_true",
+            help="Allow --flush even when DEBUG is off (DANGEROUS).",
+        )
 
     def handle(self, *args, **options):
+        from django.conf import settings
         if options["flush"]:
+            if not settings.DEBUG and not options["force"]:
+                raise SystemExit(
+                    "Refusing to --flush with DEBUG=False. Pass --force if you really mean it."
+                )
             self.stdout.write("Flushing existing data...")
             for model in [
                 RolePermission, Permission,

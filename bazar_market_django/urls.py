@@ -14,15 +14,18 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from django.conf import settings
 from django.http import JsonResponse
 from django.urls import path, include
 from base.views.docs import swagger_ui_view, openapi_spec_view
 
 urlpatterns = [
-    path('health', lambda r: JsonResponse({"status": "ok"}), name='health'),
+    path('healthz/', lambda r: JsonResponse({"status": "ok"}), name='health'),
     path('admin-api/', include('admins.urls')),
     path('api/', include('customer.urls')),
     path('docs/', swagger_ui_view, name='swagger-ui'),
     path('docs/openapi.json', openapi_spec_view, name='openapi-spec'),
-    path("telescope/", include("telescope.urls")),
 ]
+
+if settings.TELESCOPE_ENABLED:
+    urlpatterns.append(path("telescope/", include("telescope.urls")))

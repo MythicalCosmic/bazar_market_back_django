@@ -14,10 +14,13 @@ except: exit(1)
 done
 echo "PostgreSQL ready"
 
-echo "Running migrations..."
-python manage.py migrate --noinput
-
-echo "Collecting static files..."
-python manage.py collectstatic --noinput 2>/dev/null || true
+# Only the migrator container should run migrations. Set RUN_MIGRATIONS=1 there.
+# Default: web service migrates on first boot in dev; in prod, run a dedicated job.
+if [ "${RUN_MIGRATIONS:-0}" = "1" ]; then
+    echo "Running migrations..."
+    python manage.py migrate --noinput
+    echo "Collecting static files..."
+    python manage.py collectstatic --noinput
+fi
 
 exec "$@"

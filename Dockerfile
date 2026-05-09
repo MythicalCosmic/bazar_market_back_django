@@ -7,17 +7,20 @@ WORKDIR /app
 
 # System deps for psycopg, pillow, escpos
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq-dev gcc libusb-1.0-0 libjpeg62-turbo-dev zlib1g-dev \
+    libpq-dev gcc libusb-1.0-0 libjpeg62-turbo-dev zlib1g-dev curl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+# Non-root user — limits blast radius of any RCE.
+RUN groupadd -r app && useradd -r -g app -m -d /home/app app
 
-RUN python manage.py collectstatic --noinput 2>/dev/null || true
+COPY --chown=app:app . .
+
 RUN chmod +x entrypoint.sh
 
+USER app
 EXPOSE 8000
 
 ENTRYPOINT ["./entrypoint.sh"]

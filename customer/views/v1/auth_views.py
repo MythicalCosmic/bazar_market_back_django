@@ -1,4 +1,5 @@
 import json
+from dataclasses import fields
 
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_GET, require_http_methods
@@ -7,9 +8,12 @@ from base.container import container
 from base.responses import success, error, created
 from base.permissions import require_auth
 from base.ratelimit import ratelimit
-from customer.dto.auth import RegisterDTO, LoginDTO, SessionDTO
+from customer.dto.auth import RegisterDTO, SessionDTO
 from customer.dto.profile import UpdateProfileDTO
 from customer.services.v1.auth_service import CustomerAuthService
+
+
+_PROFILE_FIELDS = {f.name for f in fields(UpdateProfileDTO)}
 
 
 @csrf_exempt
@@ -21,7 +25,7 @@ def register_view(request):
     except (json.JSONDecodeError, ValueError):
         return error("Invalid JSON body")
 
-    required = ["phone", "first_name", "password"]
+    required = ["phone", "first_name"]
     missing = [f for f in required if not data.get(f)]
     if missing:
         return error(f"Missing required fields: {', '.join(missing)}", status=422)
@@ -29,7 +33,6 @@ def register_view(request):
     dto = RegisterDTO(
         phone=data["phone"],
         first_name=data["first_name"],
-        password=data["password"],
         last_name=data.get("last_name", ""),
         language=data.get("language", "uz"),
         telegram_id=data.get("telegram_id"),
@@ -87,34 +90,8 @@ def resend_register_code_view(request):
 
 @csrf_exempt
 @require_POST
-@ratelimit(5, per=60)
-def login_view(request):
-    try:
-        data = json.loads(request.body)
-    except (json.JSONDecodeError, ValueError):
-        return error("Invalid JSON body")
-
-    phone = data.get("phone")
-    password = data.get("password")
-    if not phone or not password:
-        return error("Phone and password are required", status=422)
-
-    svc = container.resolve(CustomerAuthService)
-    result = svc.login(
-        LoginDTO(phone=phone, password=password),
-        SessionDTO(
-            ip_address=request.META.get("REMOTE_ADDR", ""),
-            user_agent=request.META.get("HTTP_USER_AGENT", ""),
-            device=data.get("device", ""),
-        ),
-    )
-    return success(data=result, message="Login successful")
-
-
-@csrf_exempt
-@require_POST
 @ratelimit(3, per=60)
-def forgot_password_view(request):
+def login_view(request):
     try:
         data = json.loads(request.body)
     except (json.JSONDecodeError, ValueError):
@@ -125,14 +102,14 @@ def forgot_password_view(request):
         return error("phone is required", status=422)
 
     svc = container.resolve(CustomerAuthService)
-    result = svc.forgot_password(phone)
-    return success(data=result)
+    result = svc.login(phone)
+    return success(data=result, message="Verification code sent")
 
 
 @csrf_exempt
 @require_POST
 @ratelimit(5, per=60)
-def reset_password_view(request):
+def verify_login_view(request):
     try:
         data = json.loads(request.body)
     except (json.JSONDecodeError, ValueError):
@@ -140,12 +117,37 @@ def reset_password_view(request):
 
     phone = data.get("phone")
     code = data.get("code")
-    new_password = data.get("new_password")
-    if not phone or not code or not new_password:
-        return error("phone, code, and new_password are required", status=422)
+    if not phone or not code:
+        return error("phone and code are required", status=422)
 
     svc = container.resolve(CustomerAuthService)
-    result = svc.reset_password(phone, str(code), new_password)
+    result = svc.verify_login(
+        phone=phone,
+        code=str(code),
+        session_info=SessionDTO(
+            ip_address=request.META.get("REMOTE_ADDR", ""),
+            user_agent=request.META.get("HTTP_USER_AGENT", ""),
+            device=data.get("device", ""),
+        ),
+    )
+    return success(data=result, message="Login successful")
+
+
+@csrf_exempt
+@require_POST
+@ratelimit(1, per=60)
+def resend_login_code_view(request):
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return error("Invalid JSON body")
+
+    phone = data.get("phone")
+    if not phone:
+        return error("phone is required", status=422)
+
+    svc = container.resolve(CustomerAuthService)
+    result = svc.resend_login_code(phone)
     return success(data=result)
 
 
@@ -186,10 +188,48 @@ def update_profile_view(request):
     except (json.JSONDecodeError, ValueError):
         return error("Invalid JSON body")
 
-    dto = UpdateProfileDTO(**{k: v for k, v in data.items() if hasattr(UpdateProfileDTO, k)})
+    dto = UpdateProfileDTO(**{k: v for k, v in data.items() if k in _PROFILE_FIELDS})
     svc = container.resolve(CustomerAuthService)
     result = svc.update_profile(request.user_obj, dto)
     return success(data=result, message="Profile updated")
+
+
+@csrf_exempt
+@require_POST
+@require_auth
+@ratelimit(3, per=60)
+def request_phone_change_view(request):
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return error("Invalid JSON body")
+
+    new_phone = data.get("new_phone")
+    if not new_phone:
+        return error("new_phone is required", status=422)
+
+    svc = container.resolve(CustomerAuthService)
+    result = svc.request_phone_change(request.user_obj, new_phone)
+    return success(data=result)
+
+
+@csrf_exempt
+@require_POST
+@require_auth
+@ratelimit(5, per=60)
+def verify_phone_change_view(request):
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return error("Invalid JSON body")
+
+    code = data.get("code")
+    if not code:
+        return error("code is required", status=422)
+
+    svc = container.resolve(CustomerAuthService)
+    result = svc.verify_phone_change(request.user_obj, str(code))
+    return success(data=result, message="Phone number updated")
 
 
 @csrf_exempt

@@ -142,6 +142,7 @@ def active_orders_view(request):
 @csrf_exempt
 @require_POST
 @require_auth
+@ratelimit(10, per=60)
 def cancel_order_view(request, order_id):
     reason = ""
     if request.body:

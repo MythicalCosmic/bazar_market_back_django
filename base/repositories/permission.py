@@ -1,3 +1,5 @@
+from django.db import transaction
+
 from base.models import Permission, RolePermission, UserPermission
 from base.permissions import clear_permission_cache
 from base.repositories.base import BaseRepository
@@ -48,11 +50,12 @@ class RolePermissionRepository(BaseRepository[RolePermission]):
         return count > 0
 
     def sync_role(self, role: str, codenames: set) -> None:
-        RolePermission.objects.filter(role=role).delete()
-        perms = Permission.objects.filter(codename__in=codenames)
-        RolePermission.objects.bulk_create(
-            [RolePermission(role=role, permission=p) for p in perms]
-        )
+        with transaction.atomic():
+            RolePermission.objects.filter(role=role).delete()
+            perms = Permission.objects.filter(codename__in=codenames)
+            RolePermission.objects.bulk_create(
+                [RolePermission(role=role, permission=p) for p in perms]
+            )
         clear_permission_cache(role=role)
 
 

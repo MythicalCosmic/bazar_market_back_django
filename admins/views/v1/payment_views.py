@@ -136,7 +136,7 @@ def refund_payment_view(request, payment_id):
         data = {}
 
     svc = container.resolve(PaymentService)
-    result = svc.refund(payment_id, reason=data.get("reason", ""))
+    result = svc.refund(payment_id, reason=data.get("reason", ""), actor=request.user_obj)
     return success(data=result)
 
 

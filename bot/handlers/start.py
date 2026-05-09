@@ -14,6 +14,11 @@ router = Router()
 @router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext, django_user, lang: str, **kwargs):
     if not django_user:
+        await state.set_state(LanguageSelection.choosing)
+        await message.answer(
+            t("choose_language"),
+            reply_markup=language_keyboard(),
+        )
         return
 
     lang = django_user.language or "uz"
@@ -43,7 +48,6 @@ async def language_chosen(callback: CallbackQuery, state: FSMContext, django_use
     await callback.answer()
 
 
-# Hard lock: any other input during language selection re-asks
 @router.message(LanguageSelection.choosing)
 async def language_not_chosen(message: Message, **kwargs):
     await message.answer(t("choose_language"), reply_markup=language_keyboard())

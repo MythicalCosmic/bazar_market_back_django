@@ -20,10 +20,7 @@ from base.printing.routing import websocket_urlpatterns as printer_ws
 
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
-    "websocket": URLRouter(
-        # Printer WS: token-authenticated, no origin check needed
-        printer_ws
-        # Telescope WS: browser-based, origin validated
-        + telescope_ws
+    "websocket": AllowedHostsOriginValidator(
+        URLRouter(printer_ws + telescope_ws)
     ),
 })

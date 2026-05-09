@@ -20,6 +20,24 @@ SEARCH_FIELDS = ["name_uz", "name_ru", "description_uz", "description_ru", "sku"
 ORDER_FIELDS = {"sort_order", "price", "name_uz", "created_at", "stock_qty", "is_featured", "sku", "cost_price"}
 
 
+def _to_decimal(value, field_name: str, *, allow_blank: bool = False) -> Decimal | None:
+    """Coerce JSON value to Decimal, mapping ''/None/whitespace to None when allow_blank,
+    and raising a clean ValidationError for anything that isn't a number."""
+    if value is None:
+        return None
+    if isinstance(value, str):
+        stripped = value.strip()
+        if not stripped:
+            if allow_blank:
+                return None
+            raise ValidationError(f"{field_name} is required")
+        value = stripped
+    try:
+        return Decimal(value)
+    except (InvalidOperation, ValueError, TypeError):
+        raise ValidationError(f"Invalid {field_name}")
+
+
 class ProductService:
     def __init__(
         self,
@@ -158,7 +176,7 @@ class ProductService:
             raise ValidationError(f"Invalid unit. Must be one of: {', '.join(VALID_UNITS)}")
 
         try:
-            price = Decimal(dto.price)
+            price = _to_decimal(dto.price, "price")
             if price < 0:
                 raise ValidationError("Price must be non-negative")
         except (InvalidOperation, ValueError):
@@ -179,21 +197,25 @@ class ProductService:
             "barcode": dto.barcode or None,
             "unit": dto.unit,
             "price": price,
-            "step": Decimal(dto.step),
-            "min_qty": Decimal(dto.min_qty),
+            "step": _to_decimal(dto.step, "step") or Decimal("1"),
+            "min_qty": _to_decimal(dto.min_qty, "min_qty") or Decimal("1"),
             "in_stock": dto.in_stock,
             "sort_order": dto.sort_order,
             "is_active": dto.is_active,
             "is_featured": dto.is_featured,
         }
-        if dto.cost_price is not None:
-            kwargs["cost_price"] = Decimal(dto.cost_price)
-        if dto.max_qty is not None:
-            kwargs["max_qty"] = Decimal(dto.max_qty)
-        if dto.stock_qty is not None:
-            kwargs["stock_qty"] = Decimal(dto.stock_qty)
-        if dto.low_stock_threshold is not None:
-            kwargs["low_stock_threshold"] = Decimal(dto.low_stock_threshold)
+        cost_price = _to_decimal(dto.cost_price, "cost_price", allow_blank=True)
+        if cost_price is not None:
+            kwargs["cost_price"] = cost_price
+        max_qty = _to_decimal(dto.max_qty, "max_qty", allow_blank=True)
+        if max_qty is not None:
+            kwargs["max_qty"] = max_qty
+        stock_qty = _to_decimal(dto.stock_qty, "stock_qty", allow_blank=True)
+        if stock_qty is not None:
+            kwargs["stock_qty"] = stock_qty
+        low_stock_threshold = _to_decimal(dto.low_stock_threshold, "low_stock_threshold", allow_blank=True)
+        if low_stock_threshold is not None:
+            kwargs["low_stock_threshold"] = low_stock_threshold
 
         product = self.product_repo.create(**kwargs)
 
@@ -240,11 +262,11 @@ class ProductService:
                 raise ValidationError("Barcode already exists")
 
         for decimal_field in ("price", "cost_price", "step", "min_qty", "max_qty", "stock_qty", "low_stock_threshold"):
-            if decimal_field in data and data[decimal_field] is not None:
-                try:
-                    data[decimal_field] = Decimal(str(data[decimal_field]))
-                except (InvalidOperation, ValueError):
-                    raise ValidationError(f"Invalid {decimal_field}")
+            if decimal_field in data:
+                # Treat blank string as "clear this optional field" for nullable columns;
+                # required fields (price/step/min_qty) reject blank.
+                allow_blank = decimal_field not in {"price", "step", "min_qty"}
+                data[decimal_field] = _to_decimal(data[decimal_field], decimal_field, allow_blank=allow_blank)
 
         if "price" in data and data["price"] is not None and data["price"] < 0:
             raise ValidationError("Price must be non-negative")

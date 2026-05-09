@@ -5,9 +5,17 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
-SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-dev-key-change-in-production")
 DEBUG = os.getenv("DEBUG", "0") == "1"
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+
+SECRET_KEY = os.getenv("SECRET_KEY", "")
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = "django-insecure-dev-key-change-in-production"
+    else:
+        raise RuntimeError("SECRET_KEY env var must be set when DEBUG is off")
+
+ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if h.strip()]
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()]
 
 INSTALLED_APPS = [
     "daphne",
@@ -30,7 +38,9 @@ MIDDLEWARE = [
     "base.middlewares.forceJsonResponseMiddleware.JSONResponseMiddleware",
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = os.getenv("CORS_ALLOW_ALL", "0") == "1"
+CORS_ALLOWED_ORIGINS = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()]
+CORS_ALLOW_CREDENTIALS = os.getenv("CORS_ALLOW_CREDENTIALS", "0") == "1"
 
 TELESCOPE_ENABLED = os.getenv("TELESCOPE_ENABLED", "0") == "1"
 
@@ -45,7 +55,9 @@ BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 WEBAPP_URL = os.getenv("WEBAPP_URL", "")
 
 # Thermal receipt printer (WebSocket-based)
-PRINTER_SECRET = os.getenv("PRINTER_SECRET", "change-me-in-production")
+PRINTER_SECRET = os.getenv("PRINTER_SECRET", "")
+if not PRINTER_SECRET and not DEBUG:
+    raise RuntimeError("PRINTER_SECRET env var must be set when DEBUG is off")
 
 if TELESCOPE_ENABLED:
     MIDDLEWARE.insert(0, "telescope.middleware.TelescopeMiddleware")
@@ -67,15 +79,19 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "bazar_market_django.wsgi.application"
 
+_db_password = os.getenv("DB_PASSWORD", "")
+if not _db_password and not DEBUG:
+    raise RuntimeError("DB_PASSWORD env var must be set when DEBUG is off")
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": os.getenv("DB_NAME", "bazar_market"),
         "USER": os.getenv("DB_USER", "postgres"),
-        "PASSWORD": os.getenv("DB_PASSWORD", "bazar_secret"),
+        "PASSWORD": _db_password,
         "HOST": os.getenv("DB_HOST", "localhost"),
         "PORT": os.getenv("DB_PORT", "5432"),
-        "CONN_MAX_AGE": 0,
+        "CONN_MAX_AGE": int(os.getenv("DB_CONN_MAX_AGE", "60")),
         "CONN_HEALTH_CHECKS": True,
     }
 }
@@ -115,15 +131,38 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 ASGI_APPLICATION = "bazar_market_django.asgi.application"
 
+# Production security (enforced when DEBUG is off)
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "1") == "1"
+    SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "31536000"))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    CSRF_COOKIE_HTTPONLY = True
+    X_FRAME_OPTIONS = "DENY"
+
 # Celery
-_redis_host = os.getenv("REDIS_URL", "redis://localhost:6379/0").rsplit("/", 1)[0]
-CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", f"{_redis_host}/1")
-CELERY_RESULT_BACKEND = CELERY_BROKER_URL
+from urllib.parse import urlsplit, urlunsplit
+
+_redis_split = urlsplit(os.getenv("REDIS_URL", "redis://localhost:6379/0"))
+_redis_root = urlunsplit((_redis_split.scheme, _redis_split.netloc, "", "", ""))
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", f"{_redis_root}/1")
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", f"{_redis_root}/2")
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_ENABLE_UTC = True
 CELERY_BEAT_SCHEDULE = {
     "cart-abandonment-reminder": {
         "task": "bot.tasks.task_cart_abandonment_reminders",
+        "schedule": 3600,
+    },
+    "cleanup-expired-sessions": {
+        "task": "bot.tasks.task_cleanup_expired_sessions",
         "schedule": 3600,
     },
 }

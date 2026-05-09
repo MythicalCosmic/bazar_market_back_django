@@ -1,6 +1,7 @@
 import json
 import time
 
+from django.http import StreamingHttpResponse
 from django.utils.deprecation import MiddlewareMixin
 
 
@@ -11,6 +12,8 @@ class ResponseTimeMiddleware(MiddlewareMixin):
 
     def process_response(self, request, response):
         if not hasattr(request, "_response_start"):
+            return response
+        if isinstance(response, StreamingHttpResponse):
             return response
         elapsed_ms = round((time.monotonic() - request._response_start) * 1000, 2)
         if "application/json" in response.get("Content-Type", ""):

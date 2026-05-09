@@ -9,8 +9,6 @@ class UpdateProfileDTO:
     first_name: object = UNSET
     last_name: object = UNSET
     language: object = UNSET
-    phone: object = UNSET
-    password: object = UNSET
 
     def to_dict(self) -> dict:
         return {

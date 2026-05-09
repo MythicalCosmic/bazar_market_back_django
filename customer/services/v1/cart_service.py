@@ -3,6 +3,7 @@ from decimal import Decimal, InvalidOperation
 from base.interfaces.cart import ICartItemRepository
 from base.interfaces.product import IProductRepository
 from base.exceptions import NotFoundError, ValidationError
+from base.discount_calculator import build_discount_map, apply_best_discount
 
 
 class CartService:
@@ -19,18 +20,23 @@ class CartService:
         subtotal = Decimal(0)
         cart_items = []
 
+        by_product, by_category = build_discount_map() if items else ({}, {})
+
         for item in items:
             p = item.product
             if not p or p.deleted_at or not p.is_active:
                 continue
 
-            line_total = p.price * item.quantity
+            disc_info = apply_best_discount(p.price, p.id, p.category_id, by_product, by_category)
+            unit_price = Decimal(disc_info["discounted_price"]) if disc_info else p.price
+            line_total = unit_price * item.quantity
             subtotal += line_total
             cart_items.append({
                 "product_id": p.id,
                 "name_uz": p.name_uz,
                 "name_ru": p.name_ru,
                 "price": str(p.price),
+                "discounted_price": str(unit_price) if disc_info else None,
                 "unit": p.unit,
                 "quantity": str(item.quantity),
                 "line_total": str(line_total),

@@ -1,4 +1,5 @@
 import json
+from dataclasses import fields
 from datetime import datetime
 
 from django.views.decorators.csrf import csrf_exempt
@@ -9,6 +10,9 @@ from admins.services.v1.category_service import CategoryService
 from base.container import container
 from base.permissions import require_permission, P
 from base.responses import success, error, created, not_found
+
+
+_UPDATE_FIELDS = {f.name for f in fields(UpdateCategoryDTO)}
 
 
 def _parse_date(value):
@@ -56,7 +60,7 @@ def list_categories_view(request):
         order_by=request.GET.get("order_by", "sort_order"),
         page=page,
         per_page=per_page,
-        is_deleted=bool(request.GET.get("is_deleted", None))
+        is_deleted=str(request.GET.get("is_deleted", "")).lower() == "true",
     )
     result["items"] = [_serialize_category(c) for c in result["items"]]
     return success(data=result)
@@ -115,7 +119,16 @@ def update_category_view(request, category_id):
     except (json.JSONDecodeError, ValueError):
         return error("Invalid JSON body")
 
-    dto = UpdateCategoryDTO(**{k: v for k, v in data.items() if hasattr(UpdateCategoryDTO, k)})
+    filtered = {k: v for k, v in data.items() if k in _UPDATE_FIELDS}
+
+    # parent_id is a footgun on PATCH: a frontend that pre-fills the form and
+    # forgets to populate the parent dropdown ends up sending null/"" and
+    # silently turning a subcategory into a root. Treat both as "no change".
+    # Re-parenting still works by sending an actual integer.
+    if "parent_id" in filtered and filtered["parent_id"] in (None, ""):
+        filtered.pop("parent_id")
+
+    dto = UpdateCategoryDTO(**filtered)
     svc = container.resolve(CategoryService)
     result = svc.update_category(category_id, dto)
     return success(data=result, message="Category updated")

@@ -7,6 +7,7 @@ from base.interfaces.product import IProductRepository
 from base.interfaces.category import ICategoryRepository
 from base.interfaces.discount import IDiscountRepository
 from base.models import ProductImage, Discount, OrderItem
+from base.discount_calculator import build_discount_map, apply_best_discount
 
 
 class CatalogService:
@@ -190,51 +191,11 @@ class CatalogService:
         return result
 
     def _attach_discounts(self, products):
-        """Batch-fetch active discounts for a page of products."""
+        """Apply the shared discount calculator to a page of products."""
         if not products:
             return
-
-        now = timezone.now()
-        product_ids = [p.id for p in products]
-        category_ids = list({p.category_id for p in products})
-
-        discounts = list(
-            Discount.objects.filter(
-                is_active=True, deleted_at__isnull=True,
-            ).filter(
-                Q(starts_at__isnull=True) | Q(starts_at__lte=now),
-                Q(expires_at__isnull=True) | Q(expires_at__gte=now),
-            ).filter(
-                Q(products__in=product_ids) | Q(categories__in=category_ids)
-            ).distinct().prefetch_related("products", "categories")
-        )
-
-        if not discounts:
-            return
-
-        # Build lookup sets once
-        discount_data = []
-        for d in discounts:
-            discount_data.append({
-                "obj": d,
-                "product_ids": set(d.products.values_list("id", flat=True)),
-                "category_ids": set(d.categories.values_list("id", flat=True)),
-            })
-
+        by_product, by_category = build_discount_map()
         for p in products:
-            best_price = p.price
-            for dd in discount_data:
-                if p.id not in dd["product_ids"] and p.category_id not in dd["category_ids"]:
-                    continue
-                d = dd["obj"]
-                if d.type == "percent":
-                    disc = p.price * d.value / Decimal(100)
-                    if d.max_discount:
-                        disc = min(disc, d.max_discount)
-                else:
-                    disc = min(d.value, p.price)
-                candidate = p.price - disc
-                if candidate < best_price:
-                    best_price = candidate
-            if best_price < p.price:
-                p._discounted_price = max(best_price, Decimal(0))
+            info = apply_best_discount(p.price, p.id, p.category_id, by_product, by_category)
+            if info:
+                p._discounted_price = Decimal(info["discounted_price"])

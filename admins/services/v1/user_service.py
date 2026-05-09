@@ -1,9 +1,12 @@
+from django.contrib.auth.hashers import make_password
+from django.db import transaction
+
 from base.interfaces.user import IUserRepository
 from base.interfaces.session import ISessionRepository
-from base.exceptions import NotFoundError, ValidationError
-from admins.dto.user import CreateUserDTO, UpdateUserDTO
-from django.db import transaction
+from base.exceptions import NotFoundError, ValidationError, ForbiddenError
 from base.models import User
+from base.permissions import clear_permission_cache
+from admins.dto.user import CreateUserDTO, UpdateUserDTO
 
 STAFF_ROLES = {User.Role.ADMIN, User.Role.MANAGER, User.Role.COURIER}
 
@@ -15,6 +18,17 @@ class UserService:
 
     def _staff_qs(self):
         return self.user_repository.get_all().filter(role__in=STAFF_ROLES)
+
+    @staticmethod
+    def _guard(actor, target, *, allow_self: bool = False):
+        """Enforce: only an admin can modify another admin; nobody can modify themselves
+        through staff endpoints unless allow_self=True."""
+        if actor is None:
+            return
+        if not allow_self and target.id == actor.id:
+            raise ForbiddenError("You cannot modify your own staff record from this endpoint")
+        if target.role == User.Role.ADMIN and actor.role != User.Role.ADMIN:
+            raise ForbiddenError("Only an admin can modify an admin user")
 
     def get_all(self, query=None, role=None, is_active=None, order_by="-created_at", page=1, per_page=20, is_deleted=False):
         if is_deleted:
@@ -39,9 +53,11 @@ class UserService:
         return self.user_repository.get_by_phone(phone)
 
     @transaction.atomic
-    def create_user(self, dto: CreateUserDTO) -> dict:
+    def create_user(self, dto: CreateUserDTO, actor: User | None = None) -> dict:
         if dto.role not in STAFF_ROLES:
             raise ValidationError(f"Role must be one of: {', '.join(STAFF_ROLES)}")
+        if dto.role == User.Role.ADMIN and actor is not None and actor.role != User.Role.ADMIN:
+            raise ForbiddenError("Only an admin can create another admin")
         if self.user_repository.exists(username=dto.username):
             raise ValidationError("Username already exists")
         if dto.phone and self.user_repository.exists(phone=dto.phone):
@@ -55,50 +71,71 @@ class UserService:
             role=dto.role,
             language=dto.language or "uz",
             telegram_id=dto.telegram_id,
+            password=make_password(dto.password),
         )
 
-        user.set_password(dto.password)
-
         return {"id": user.id, "username": user.username, "first_name": user.first_name, "last_name": user.last_name}
 
-
-    def update_user(self, user_id, dto: UpdateUserDTO) -> dict:
-        user = self.user_repository.get_by_id(user_id)
-        if not user:
-            raise NotFoundError("User not found")
-
-        data = dto.to_dict()
-
-        raw_password = data.pop("password", None)
-
-        if "username" in data and data["username"] != user.username:
-            if self.user_repository.exists(username=dto.username):
-                raise ValidationError("Username already exists")
-
-        if data:
-            self.user_repository.update(user, **data)
-        if raw_password:
-            user.set_password(raw_password)
-
-
-        return {"id": user.id, "username": user.username, "first_name": user.first_name, "last_name": user.last_name}
-
-
-    def delete_user(self, user_id: int) -> dict:
+    @transaction.atomic
+    def update_user(self, user_id, dto: UpdateUserDTO, actor: User | None = None) -> dict:
         user = self._staff_qs().filter(pk=user_id).first()
         if not user:
             raise NotFoundError("User not found")
 
+        self._guard(actor, user)
+
+        data = dto.to_dict()
+        raw_password = data.pop("password", None)
+
+        if "role" in data:
+            if data["role"] not in STAFF_ROLES:
+                raise ValidationError(f"Role must be one of: {', '.join(STAFF_ROLES)}")
+            if data["role"] == User.Role.ADMIN and actor is not None and actor.role != User.Role.ADMIN:
+                raise ForbiddenError("Only an admin can promote a user to admin")
+
+        if "username" in data and data["username"] != user.username:
+            if self.user_repository.exists(username=data["username"]):
+                raise ValidationError("Username already exists")
+
+        old_role = user.role
+        if data:
+            self.user_repository.update(user, **data)
+        if raw_password:
+            user.password = make_password(raw_password)
+            user.save(update_fields=["password", "updated_at"])
+            self.session_repository.invalidate_all_for_user(user)
+
+        # Invalidate permission cache for both old and new role + this user's overrides
+        clear_permission_cache(role=old_role, user_id=user.id)
+        if "role" in data and data["role"] != old_role:
+            clear_permission_cache(role=data["role"])
+
+        return {"id": user.id, "username": user.username, "first_name": user.first_name, "last_name": user.last_name}
+
+    @transaction.atomic
+    def delete_user(self, user_id: int, actor: User | None = None) -> dict:
+        user = self._staff_qs().filter(pk=user_id).first()
+        if not user:
+            raise NotFoundError("User not found")
+
+        self._guard(actor, user)
+
         self.user_repository.soft_delete(user)
         self.session_repository.invalidate_all_for_user(user)
+        clear_permission_cache(role=user.role, user_id=user.id)
 
         return {"message": "User deleted successfully"}
 
-    def restore_user(self, user_id: int) -> dict:
+    @transaction.atomic
+    def restore_user(self, user_id: int, actor: User | None = None) -> dict:
         user = self.user_repository.get_only_deleted().filter(pk=user_id, role__in=STAFF_ROLES).first()
         if not user:
             raise NotFoundError("User not found or not deleted")
 
+        if user.role == User.Role.ADMIN and actor is not None and actor.role != User.Role.ADMIN:
+            raise ForbiddenError("Only an admin can restore an admin user")
+
         self.user_repository.restore(user)
+        clear_permission_cache(role=user.role, user_id=user.id)
 
         return {"message": "User restored successfully"}

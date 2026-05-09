@@ -31,7 +31,13 @@ def main_menu_keyboard(lang: str) -> ReplyKeyboardMarkup:
 
 
 
-def order_actions_keyboard(order_id: int, status: str, payment_status: str) -> InlineKeyboardMarkup:
+_PAY_BUTTONS = {
+    "paid": {"uz": "💰 To'langan", "ru": "💰 Оплачено"},
+    "refunded": {"uz": "↩️ Qaytarish", "ru": "↩️ Возврат"},
+}
+
+
+def order_actions_keyboard(order_id: int, status: str, payment_status: str, lang: str = "uz") -> InlineKeyboardMarkup:
     """Build inline buttons for valid status transitions + payment status."""
     from bot.texts import STATUS_LABELS
 
@@ -48,34 +54,29 @@ def order_actions_keyboard(order_id: int, status: str, payment_status: str) -> I
         "delivered": "📬", "completed": "✅", "cancelled": "❌",
     }
 
-    PAYMENT_LABELS = {
-        "unpaid": "To'lanmagan", "pending": "Kutilmoqda",
-        "paid": "To'langan", "refunded": "Qaytarilgan",
-    }
-
     rows = []
 
-    # Status transition buttons
     allowed = TRANSITIONS.get(status, [])
     if allowed:
         status_buttons = []
         for s in allowed:
             emoji = STATUS_EMOJI.get(s, "")
-            label = STATUS_LABELS.get(s, {}).get("uz", s)
+            label = STATUS_LABELS.get(s, {}).get(lang, STATUS_LABELS.get(s, {}).get("uz", s))
             status_buttons.append(
                 InlineKeyboardButton(text=f"{emoji} {label}", callback_data=f"os:{order_id}:{s}")
             )
         rows.append(status_buttons)
 
-    # Payment status buttons
     pay_buttons = []
     if payment_status != "paid":
+        text = _PAY_BUTTONS["paid"].get(lang, _PAY_BUTTONS["paid"]["uz"])
         pay_buttons.append(
-            InlineKeyboardButton(text="💰 To'langan", callback_data=f"op:{order_id}:paid")
+            InlineKeyboardButton(text=text, callback_data=f"op:{order_id}:paid")
         )
     if payment_status == "paid":
+        text = _PAY_BUTTONS["refunded"].get(lang, _PAY_BUTTONS["refunded"]["uz"])
         pay_buttons.append(
-            InlineKeyboardButton(text="↩️ Qaytarish", callback_data=f"op:{order_id}:refunded")
+            InlineKeyboardButton(text=text, callback_data=f"op:{order_id}:refunded")
         )
     if pay_buttons:
         rows.append(pay_buttons)

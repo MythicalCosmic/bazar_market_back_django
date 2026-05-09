@@ -1,3 +1,4 @@
+import logging
 from decimal import Decimal
 
 from django.db.models import Sum, Count, Avg, Q
@@ -6,6 +7,8 @@ from django.utils import timezone
 from base.interfaces.payment import IPaymentRepository
 from base.interfaces.order import IOrderRepository
 from base.exceptions import NotFoundError, ValidationError
+
+logger = logging.getLogger(__name__)
 
 
 VALID_TRANSITIONS = {
@@ -103,7 +106,7 @@ class PaymentService:
 
         return {"message": f"Payment status updated to {new_status}"}
 
-    def refund(self, payment_id: int, reason: str = "") -> dict:
+    def refund(self, payment_id: int, reason: str = "", actor=None) -> dict:
         payment = self.payment_repo.get_by_id(payment_id)
         if not payment:
             raise NotFoundError("Payment not found")
@@ -111,6 +114,20 @@ class PaymentService:
             raise ValidationError("Only completed payments can be refunded")
 
         self.payment_repo.mark_refunded(payment)
+
+        # TODO: persist actor + reason in a dedicated PaymentLog/AuditLog table (needs migration).
+        # For now, log structurally so refunds are auditable from observability.
+        logger.info(
+            "payment_refunded",
+            extra={
+                "payment_id": payment.id,
+                "order_id": payment.order_id,
+                "amount": str(payment.amount),
+                "reason": reason or "",
+                "actor_id": getattr(actor, "id", None),
+                "at": timezone.now().isoformat(),
+            },
+        )
 
         self.order_repo.bulk_update(
             self.order_repo.get_all().filter(pk=payment.order_id),

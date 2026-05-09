@@ -73,6 +73,8 @@ class NotificationService:
         )
         return {"id": notif.id, "message": "Notification sent"}
 
+    BULK_USER_ID_CAP = 5000
+
     def send_bulk(self, dto: BulkNotificationDTO) -> dict:
         if dto.type not in dict(Notification.Type.choices):
             raise ValidationError(f"Invalid notification type: {dto.type}")
@@ -80,13 +82,15 @@ class NotificationService:
             raise ValidationError(f"Invalid channel: {dto.channel}")
 
         if dto.user_ids:
+            if len(dto.user_ids) > self.BULK_USER_ID_CAP:
+                raise ValidationError(f"user_ids cannot exceed {self.BULK_USER_ID_CAP} entries")
             users = self.user_repo.get_all().filter(pk__in=dto.user_ids, is_active=True)
         elif dto.role:
             if dto.role not in dict(User.Role.choices):
                 raise ValidationError(f"Invalid role: {dto.role}")
             users = self.user_repo.get_all().filter(role=dto.role, is_active=True)
         else:
-            users = self.user_repo.get_all().filter(is_active=True)
+            raise ValidationError("Specify either user_ids or role; broadcasting to all users is not allowed")
 
         notifications = [
             Notification(

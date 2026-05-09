@@ -1,3 +1,5 @@
+from html import escape as h
+
 from aiogram import Router, F
 from aiogram.types import CallbackQuery
 from asgiref.sync import sync_to_async
@@ -51,19 +53,21 @@ async def update_order_status(callback: CallbackQuery, django_user, lang: str, *
         if order:
             from bot.texts import status_emoji, payment_label
             emoji = status_emoji(order.status)
-            user_name = f"{order.user.first_name} {order.user.last_name}".strip()
+            user_name = h(f"{order.user.first_name} {order.user.last_name}".strip())
             text = (
                 f"📦 <b>#{order.order_number}</b>\n"
-                f"👤 {user_name} | {order.user.phone or '—'}\n"
+                f"👤 {user_name} | {h(order.user.phone or '—')}\n"
                 f"{emoji} {status_label(order.status, lang)}\n"
                 f"💰 {order.total:,.0f} so'm | 💳 {payment_label(order.payment_method, lang)}\n"
                 f"📅 {order.created_at.strftime('%d.%m.%Y %H:%M')}"
             )
-            kb = order_actions_keyboard(order.id, order.status, order.payment_status)
+            kb = order_actions_keyboard(order.id, order.status, order.payment_status, lang)
             await callback.message.edit_text(text, reply_markup=kb if kb.inline_keyboard else None)
 
-    except Exception as e:
-        await callback.answer(str(e)[:200], show_alert=True)
+    except Exception:
+        import logging
+        logging.getLogger(__name__).exception("admin handler failed")
+        await callback.answer(t("operation_failed", lang), show_alert=True)
 
 
 @router.callback_query(F.data.startswith("op:"))
@@ -106,19 +110,21 @@ async def update_payment_status(callback: CallbackQuery, django_user, lang: str,
         )()
         if order:
             emoji = status_emoji(order.status)
-            user_name = f"{order.user.first_name} {order.user.last_name}".strip()
+            user_name = h(f"{order.user.first_name} {order.user.last_name}".strip())
             text = (
                 f"📦 <b>#{order.order_number}</b>\n"
-                f"👤 {user_name} | {order.user.phone or '—'}\n"
+                f"👤 {user_name} | {h(order.user.phone or '—')}\n"
                 f"{emoji} {status_label(order.status, lang)}\n"
                 f"💰 {order.total:,.0f} so'm | 💳 {payment_label(order.payment_method, lang)}\n"
                 f"📅 {order.created_at.strftime('%d.%m.%Y %H:%M')}"
             )
-            kb = order_actions_keyboard(order.id, order.status, order.payment_status)
+            kb = order_actions_keyboard(order.id, order.status, order.payment_status, lang)
             await callback.message.edit_text(text, reply_markup=kb if kb.inline_keyboard else None)
 
-    except Exception as e:
-        await callback.answer(str(e)[:200], show_alert=True)
+    except Exception:
+        import logging
+        logging.getLogger(__name__).exception("admin handler failed")
+        await callback.answer(t("operation_failed", lang), show_alert=True)
 
 
 
@@ -155,17 +161,19 @@ async def accept_and_print(callback: CallbackQuery, django_user, lang: str, **kw
         if order:
             from bot.texts import status_label, status_emoji, payment_label
             emoji = status_emoji(order.status)
-            user_name = f"{order.user.first_name} {order.user.last_name}".strip()
+            user_name = h(f"{order.user.first_name} {order.user.last_name}".strip())
             text = (
                 f"📦 <b>#{order.order_number}</b>\n"
-                f"👤 {user_name} | {order.user.phone or '—'}\n"
+                f"👤 {user_name} | {h(order.user.phone or '—')}\n"
                 f"{emoji} {status_label(order.status, lang)}\n"
                 f"💰 {order.total:,.0f} so'm | 💳 {payment_label(order.payment_method, lang)}\n"
                 f"📅 {order.created_at.strftime('%d.%m.%Y %H:%M')}"
             )
-            kb = order_actions_keyboard(order.id, order.status, order.payment_status)
+            kb = order_actions_keyboard(order.id, order.status, order.payment_status, lang)
             await callback.message.edit_text(text, reply_markup=kb)
         else:
             await callback.message.edit_reply_markup(reply_markup=None)
-    except Exception as e:
-        await callback.answer(str(e)[:200], show_alert=True)
+    except Exception:
+        import logging
+        logging.getLogger(__name__).exception("admin handler failed")
+        await callback.answer(t("operation_failed", lang), show_alert=True)

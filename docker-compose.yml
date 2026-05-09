@@ -6,11 +6,11 @@ services:
     environment:
       POSTGRES_DB: ${DB_NAME:-bazar_market}
       POSTGRES_USER: ${DB_USER:-bazar}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-bazar_secret}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-bazar} -d ${DB_NAME:-bazar_market}"]
       interval: 5s
@@ -21,7 +21,7 @@ services:
     image: redis:7-alpine
     restart: always
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -31,6 +31,8 @@ services:
   web:
     build: .
     restart: always
+    environment:
+      - RUN_MIGRATIONS=1
     volumes:
       - static_files:/app/staticfiles
       - media_files:/app/media
@@ -41,6 +43,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/healthz/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   bot:
     build: .
@@ -84,12 +92,12 @@ services:
     build: ./file_downloader
     restart: always
     environment:
-      - API_TOKEN=${FILE_API_TOKEN:-change-me}
+      - API_TOKEN=${FILE_API_TOKEN:?FILE_API_TOKEN must be set}
       - STORAGE_DIR=/data/files
     volumes:
       - file_storage:/data/files
     ports:
-      - "6767:6767"
+      - "127.0.0.1:6767:6767"
 
   nginx:
     image: nginx:alpine
@@ -101,7 +109,8 @@ services:
       - static_files:/app/staticfiles:ro
       - media_files:/app/media:ro
     depends_on:
-      - web
+      web:
+        condition: service_healthy
 
 volumes:
   postgres_data:
