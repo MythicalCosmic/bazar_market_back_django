@@ -79,7 +79,7 @@ services:
   celery-beat:
     build: .
     restart: always
-    command: celery -A bazar_market_django beat -l info
+    command: celery -A bazar_market_django beat -l info -s /tmp/celerybeat-schedule
     env_file:
       - .env
     depends_on:
