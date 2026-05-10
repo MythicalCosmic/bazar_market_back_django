@@ -8,7 +8,7 @@ from base.interfaces.user import IUserRepository
 from base.interfaces.session import ISessionRepository
 from base.exceptions import AuthenticationError, ValidationError
 from base.models import User
-from base.sms import send_otp, verify_otp
+from base.sms import normalize_phone, send_otp, verify_otp
 from customer.dto.auth import RegisterDTO, SessionDTO
 from customer.dto.profile import UpdateProfileDTO
 
@@ -44,34 +44,42 @@ class CustomerAuthService:
         if dto.language and dto.language not in VALID_LANGUAGES:
             raise ValidationError(f"Invalid language. Must be one of: {', '.join(VALID_LANGUAGES)}")
 
-        if self._users.get_by_phone(dto.phone):
+        phone = normalize_phone(dto.phone)
+        if not phone:
+            raise ValidationError("Invalid phone number")
+
+        if self._users.get_by_phone(phone):
             raise ValidationError("Phone number already registered")
 
         if dto.telegram_id and self._users.get_by_telegram_id(dto.telegram_id):
             raise ValidationError("Telegram account already registered")
 
-        sms_result = send_otp(dto.phone)
+        sms_result = send_otp(phone)
+        if not sms_result["sent"]:
+            raise ValidationError(sms_result["message"])
 
         pending = {
-            "phone": dto.phone,
+            "phone": phone,
             "first_name": dto.first_name,
             "last_name": dto.last_name,
             "language": dto.language or "uz",
             "telegram_id": dto.telegram_id,
         }
-        cache.set(_pending_key(dto.phone), json.dumps(pending), timeout=PENDING_REG_TTL)
+        cache.set(_pending_key(phone), json.dumps(pending), timeout=PENDING_REG_TTL)
 
         return {
             "message": "Verification code sent",
-            "phone": dto.phone,
-            "verification_sent": sms_result.get("sent", False),
-            "expires_in": PENDING_REG_TTL,
+            "phone": phone,
+            "verification_sent": True,
+            "expires_in": sms_result.get("expires_in", PENDING_REG_TTL),
         }
 
     @transaction.atomic
     def verify_register(self, phone: str, code: str, session_info: SessionDTO) -> dict:
         if not phone or not code:
             raise ValidationError("phone and code are required")
+
+        phone = normalize_phone(phone)
 
         if not verify_otp(phone, code):
             raise ValidationError("Invalid or expired verification code")
@@ -114,6 +122,8 @@ class CustomerAuthService:
         if not phone:
             raise ValidationError("phone is required")
 
+        phone = normalize_phone(phone)
+
         raw = cache.get(_pending_key(phone))
         if not raw:
             raise ValidationError("No pending registration for this phone. Please register again.")
@@ -132,6 +142,8 @@ class CustomerAuthService:
         if not phone:
             raise ValidationError("phone is required")
 
+        phone = normalize_phone(phone)
+
         user = self._users.get_by_phone(phone)
         eligible = bool(user and user.role == User.Role.CLIENT and user.is_active)
 
@@ -149,6 +161,8 @@ class CustomerAuthService:
     def verify_login(self, phone: str, code: str, session_info: SessionDTO) -> dict:
         if not phone or not code:
             raise ValidationError("phone and code are required")
+
+        phone = normalize_phone(phone)
 
         if not cache.get(_login_key(phone)):
             raise ValidationError("No pending login for this phone. Please request a code first.")
@@ -184,6 +198,8 @@ class CustomerAuthService:
     def resend_login_code(self, phone: str) -> dict:
         if not phone:
             raise ValidationError("phone is required")
+
+        phone = normalize_phone(phone)
 
         if not cache.get(_login_key(phone)):
             raise ValidationError("No pending login for this phone. Please request a code first.")
@@ -233,6 +249,10 @@ class CustomerAuthService:
     def request_phone_change(self, user, new_phone: str) -> dict:
         if not new_phone:
             raise ValidationError("new_phone is required")
+
+        new_phone = normalize_phone(new_phone)
+        if not new_phone:
+            raise ValidationError("Invalid phone number")
 
         if new_phone == user.phone:
             raise ValidationError("New phone is the same as current")
