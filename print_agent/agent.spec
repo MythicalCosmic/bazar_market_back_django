@@ -2,11 +2,16 @@
 # PyInstaller spec file for Bazar Market Print Agent
 # Build: pyinstaller agent.spec
 
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules
+
+escpos_datas = collect_data_files('escpos')  # capabilities.json, templates/, etc.
+escpos_hidden = collect_submodules('escpos')
+
 a = Analysis(
     ['agent.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=escpos_datas,
     hiddenimports=[
         'usb',
         'usb.core',
@@ -15,10 +20,8 @@ a = Analysis(
         'usb.backend.libusb1',
         'usb.backend.libusb0',
         'usb.backend.openusb',
-        'escpos',
-        'escpos.printer',
         'win32print',
-    ],
+    ] + escpos_hidden,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

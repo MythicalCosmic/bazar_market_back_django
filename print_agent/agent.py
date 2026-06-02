@@ -147,7 +147,12 @@ def get_printer(printer_path=None):
     """Get an ESC/POS printer instance."""
     from escpos.printer import File, Usb
 
+    def _win32raw(name):
+        from escpos.printer import Win32Raw
+        return Win32Raw(name)
+
     if printer_path:
+        # USB vendor:product (hex)
         if ":" in printer_path and len(printer_path.split(":")) == 2:
             parts = printer_path.split(":")
             try:
@@ -156,9 +161,16 @@ def get_printer(printer_path=None):
                 return Usb(vendor, product)
             except ValueError:
                 pass
+        # /dev/* on Linux
+        if printer_path.startswith("/dev/"):
+            return File(printer_path)
+        # Otherwise: Windows installed printer share name
+        if platform.system() == "Windows":
+            return _win32raw(printer_path)
         return File(printer_path)
 
-    # Auto-detect
+    # Auto-detect — on Windows, prefer the Windows-installed printer (driver
+    # handles raw bytes), fall back to direct USB if no driver is installed.
     printers = detect_printers()
     if not printers:
         return None
@@ -166,6 +178,12 @@ def get_printer(printer_path=None):
     logger.info(f"Detected {len(printers)} printer(s):")
     for i, p in enumerate(printers):
         logger.info(f"  [{i}] {p['name']}")
+
+    if platform.system() == "Windows":
+        win32 = next((p for p in printers if p["type"] == "win32"), None)
+        if win32:
+            logger.info(f"Using: {win32['name']}")
+            return _win32raw(win32["path"])
 
     p = printers[0]
     logger.info(f"Using: {p['name']}")
@@ -175,7 +193,7 @@ def get_printer(printer_path=None):
     elif p["type"] == "file":
         return File(p["path"])
     elif p["type"] == "win32":
-        return File(p["path"])
+        return _win32raw(p["path"])
 
     return None
 
@@ -224,6 +242,24 @@ def _print_logo(printer, logo_b64: str):
         printer.image(img)
     except Exception as e:
         logger.debug(f"Logo print skipped: {e}")
+
+
+def _finalize(printer):
+    """Flush the receipt to the physical printer.
+
+    Win32Raw buffers an entire print job into one open spooler document and
+    only hands it to the printer when the document is ended (close()). Without
+    this the bytes pile up forever and nothing prints. close() ends the job;
+    open() starts a fresh one for the next receipt (this _raw refuses to write
+    after the job is closed). USB/File devices write directly and need neither.
+    """
+    if type(printer).__name__ != "Win32Raw":
+        return
+    try:
+        printer.close()
+        printer.open()
+    except Exception as e:
+        logger.error(f"Failed to finalize print job: {e}")
 
 
 def print_receipt(printer, data: dict):
@@ -293,6 +329,8 @@ def print_receipt(printer, data: dict):
 
     except Exception as e:
         logger.error(f"Print failed: {e}")
+    finally:
+        _finalize(printer)
 
 
 # ── WebSocket client ───────────────────────────────────────────
@@ -300,6 +338,7 @@ def print_receipt(printer, data: dict):
 async def run_agent(ws_url: str, token: str, printer_id: str, printer_path: str = None):
     """Connect to server WebSocket, listen for print jobs, print them."""
     import websockets
+    from urllib.parse import urlparse
 
     printer = get_printer(printer_path)
     if not printer:
@@ -317,12 +356,23 @@ async def run_agent(ws_url: str, token: str, printer_id: str, printer_path: str 
     sep = "&" if "?" in ws_url else "?"
     full_url = f"{ws_url}{sep}token={token}&printer_id={printer_id}"
 
+    # Django Channels' AllowedHostsOriginValidator rejects WS upgrades whose
+    # Origin doesn't match ALLOWED_HOSTS. Derive an http(s) origin from the ws URL.
+    parsed = urlparse(ws_url)
+    origin_scheme = "https" if parsed.scheme == "wss" else "http"
+    origin = f"{origin_scheme}://{parsed.netloc}"
+
     reconnect_delay = 2
 
     while True:
         try:
             logger.info(f"Connecting to server...")
-            async with websockets.connect(full_url, ping_interval=30, ping_timeout=10) as ws:
+            async with websockets.connect(
+                full_url,
+                ping_interval=30,
+                ping_timeout=10,
+                origin=origin,
+            ) as ws:
                 logger.info("Connected! Waiting for print jobs...")
                 reconnect_delay = 2
 

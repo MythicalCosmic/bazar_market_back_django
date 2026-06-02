@@ -1,0 +1,6 @@
+# Build artifacts
+.cache/
+.wine-build/
+build/
+dist/
+*.spec.bak
