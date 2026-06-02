@@ -48,7 +48,7 @@ def delivery_info_view(request):
         for z in zones
     ]
 
-    default_fee = Setting.objects.filter(pk="default_delivery_fee").first()
+    default_fee = Setting.objects.filter(pk="delivery_fee").first()
     min_order = Setting.objects.filter(pk="min_order_total").first()
 
     return success(data={
