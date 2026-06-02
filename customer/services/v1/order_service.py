@@ -94,7 +94,7 @@ class CustomerOrderService:
         subtotal = sum(discounted_prices[ci.product_id] * ci.quantity for ci in cart_items)
 
         # 6. Delivery fee (from settings) & global minimum order
-        delivery_fee = Decimal(str(self.setting_repo.get_value("default_delivery_fee", "0")))
+        delivery_fee = Decimal(str(self.setting_repo.get_value("delivery_fee", "0")))
         global_min = Decimal(str(self.setting_repo.get_value("min_order_total", "0")))
         if global_min > 0 and subtotal < global_min:
             raise ValidationError(f"Minimum order total is {global_min}")
