@@ -99,10 +99,12 @@ DATABASES = {
     }
 }
 
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": os.getenv("REDIS_URL", "redis://localhost:6379/0"),
+        "LOCATION": REDIS_URL,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
             "CONNECTION_POOL_KWARGS": {"max_connections": 50},
@@ -151,7 +153,7 @@ if not DEBUG:
 # Celery
 from urllib.parse import urlsplit, urlunsplit
 
-_redis_split = urlsplit(os.getenv("REDIS_URL", "redis://localhost:6379/0"))
+_redis_split = urlsplit(REDIS_URL)
 _redis_root = urlunsplit((_redis_split.scheme, _redis_split.netloc, "", "", ""))
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", f"{_redis_root}/1")
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", f"{_redis_root}/2")
@@ -174,7 +176,7 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [os.getenv("REDIS_URL", "redis://localhost:6379/0")],
+            "hosts": [REDIS_URL],
         },
     }
 }
