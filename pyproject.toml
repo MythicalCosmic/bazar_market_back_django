@@ -20,6 +20,8 @@ dependencies = [
     "python-dotenv>=1.2.2",
     "python-escpos>=3.1",
     "pyusb>=1.3.1",
-    "redis>=7.4.0",
+    # Cap below 8.0: redis-py 8.0's RESP3-by-default responses crash
+    # channels-redis 4.3.x (1011 on the printer WebSocket consumer).
+    "redis>=7.4.0,<8.0",
     "requests>=2.33.0",
 ]
