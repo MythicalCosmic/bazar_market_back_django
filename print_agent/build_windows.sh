@@ -72,12 +72,13 @@ wine "$WINE_PYTHON" -m pip install \
     pyusb \
     pillow \
     pywin32 \
+    customtkinter \
     2>&1 | grep -vE "^(fixme|wine:|err:|0[0-9a-f]{3}:)" || true
 
 # 5) Build the exe
 echo "[5/5] Running PyInstaller ..."
 rm -rf "$HERE/build" "$HERE/dist"
-wine "$WINE_PYTHON" -m PyInstaller agent.spec --clean --noconfirm 2>&1 \
+wine "$WINE_PYTHON" -m PyInstaller gui.spec --clean --noconfirm 2>&1 \
     | grep -vE "^(fixme|wine:|0[0-9a-f]{3}:)" || true
 
 OUT="$HERE/dist/BazarMarketPrinter.exe"

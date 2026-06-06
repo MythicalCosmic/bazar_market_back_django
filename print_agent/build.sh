@@ -4,10 +4,10 @@ echo "  Building Bazar Market Print Agent"
 echo "========================================"
 echo
 
-pip install pyinstaller websockets python-escpos pyusb pillow
+pip install pyinstaller websockets python-escpos pyusb pillow customtkinter
 echo
 
-pyinstaller agent.spec --clean
+pyinstaller gui.spec --clean
 echo
 
 if [ -f "dist/BazarMarketPrinter" ]; then
