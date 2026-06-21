@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     "customer",
     "admins",
     "bot",
+    "courier",
 ]
 
 MIDDLEWARE = [

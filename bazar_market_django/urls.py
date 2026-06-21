@@ -23,6 +23,7 @@ urlpatterns = [
     path('healthz/', lambda r: JsonResponse({"status": "ok"}), name='health'),
     path('admin-api/', include('admins.urls')),
     path('api/', include('customer.urls')),
+    path('courier-api/', include('courier.urls')),
     path('docs/', swagger_ui_view, name='swagger-ui'),
     path('docs/openapi.json', openapi_spec_view, name='openapi-spec'),
 ]
